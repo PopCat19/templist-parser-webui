@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Character Template Editor</title>
+    <title>Templist Parser WebUI</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
@@ -24,7 +24,7 @@
             --md-background: #121212;
             --md-shape-corner: 12px;
             --spacing-unit: 8px;
-            --line-number-width: 40px; /* Width for line number gutter */
+            --line-number-width: 40px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -43,7 +43,10 @@
         .container { max-width: 1200px; margin: 0 auto; }
         header { text-align: center; padding-top: calc(var(--spacing-unit) * 2); padding-bottom: calc(var(--spacing-unit) * 3); }
         h1 { font-size: 2.2rem; font-weight: 700; color: var(--md-primary); margin-bottom: var(--spacing-unit); }
-        .subtitle { font-size: 1.1rem; color: var(--md-secondary); max-width: 700px; margin: 0 auto; }
+        .subtitle { font-size: 1.1rem; color: var(--md-secondary); max-width: 700px; margin: 0 auto; margin-bottom: var(--spacing-unit); }
+        .github-link { font-size: 0.9rem; color: var(--md-primary-container); text-decoration: none; }
+        .github-link:hover { text-decoration: underline; color: var(--md-primary); }
+
 
         .card {
             background-color: var(--md-surface);
@@ -65,7 +68,7 @@
             display: inline-flex; align-items: center; justify-content: center;
             gap: var(--spacing-unit); padding: calc(var(--spacing-unit) * 1.25) calc(var(--spacing-unit) * 2.5);
             border-radius: 20px; border: none; font-size: 0.875rem; font-weight: 500;
-            cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease;
+            cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
             background-color: var(--md-primary); color: var(--md-on-primary);
             flex: 1 1 auto; min-width: 120px; text-align: center;
         }
@@ -224,7 +227,13 @@
 </head>
 <body>
     <div class="container" id="mainContainer">
-        <header><h1>Character Template Editor</h1><p class="subtitle">Create, edit, and convert character templates with Material Design 3</p></header>
+        <header>
+            <h1>Templist Parser WebUI</h1>
+            <p class="subtitle">Build waifu from template, parse into inline PList</p>
+            <a href="https://github.com/PopCat19/templist-parser-webui" target="_blank" rel="noopener noreferrer" class="github-link">
+                <i class="material-icons" style="vertical-align: middle; font-size: 1.2em;">code</i> View on GitHub
+            </a>
+        </header>
         
         <div class="card">
             <div class="card-header"><h2>Template Selection</h2>
@@ -258,7 +267,7 @@
             <div id="lintMessages"><ul></ul></div>
         </div>
         
-        <div class="card output-container">
+        <div class="card output-container" id="outputCard">
             <div class="card-header"><h2>PList Output</h2></div>
             <textarea id="outputText" readonly placeholder="Your converted PList will appear here..."></textarea>
             <button class="btn btn-icon copy-btn" id="copyBtn" title="Copy to clipboard"><i class="material-icons">content_copy</i></button>
@@ -301,6 +310,12 @@
             const mainContainer = document.getElementById('mainContainer');
             const lintMessagesUl = document.querySelector('#lintMessages ul');
             const lineNumbersDiv = document.getElementById('lineNumbers');
+            const outputCard = document.getElementById('outputCard'); // For scrolling
+
+            const originalConvertBtnHTML = convertBtn.innerHTML; // Store original button text
+            let convertClickCount = 0;
+            let convertClickTimer = null;
+            const DOUBLE_CLICK_TIMEOUT = 2000; // 2 seconds for the second click
 
             inputText.value = templates.empty;
             updateEditorVisuals();
@@ -314,10 +329,33 @@
                     inputText.scrollTop = 0; 
                     updateEditorVisuals();
                     runLinter();
+                    resetConvertButtonState(); // Reset convert button if template changes
                 });
             });
 
-            convertBtn.addEventListener('click', convertToPList);
+            convertBtn.addEventListener('click', handleConvertClick);
+            
+            function handleConvertClick() {
+                clearTimeout(convertClickTimer); // Clear any existing timer
+                convertClickCount++;
+
+                if (convertClickCount === 1) {
+                    convertToPList();
+                    convertBtn.innerHTML = '<i class="material-icons">arrow_downward</i> Scroll to Output?';
+                    convertClickTimer = setTimeout(() => {
+                        resetConvertButtonState();
+                    }, DOUBLE_CLICK_TIMEOUT);
+                } else if (convertClickCount === 2) {
+                    outputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    resetConvertButtonState();
+                }
+            }
+
+            function resetConvertButtonState() {
+                convertClickCount = 0;
+                convertBtn.innerHTML = originalConvertBtnHTML;
+                clearTimeout(convertClickTimer);
+            }
             
             function copyToClipboardHandler() {
                 outputText.select();
@@ -339,6 +377,7 @@
                 outputText.value = '';
                 updateEditorVisuals();
                 runLinter();
+                resetConvertButtonState();
             });
 
             function convertToPList() {
@@ -415,6 +454,7 @@
                     updateEditorVisuals();
                     runLinter();
                 }, 150);
+                resetConvertButtonState(); // Reset if user types after first click
             });
             
             new ResizeObserver(() => {
@@ -550,14 +590,13 @@
                 }
                 
                 inputText.focus();
-                // inputText.scrollTop = 0; // Temporarily removed to see if direct scroll works better
                 inputText.setSelectionRange(charCount, charCount);
                 
                 const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
                 const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
                 const targetScrollTop = (lineNumber - 1) * lineHeight + paddingTop - (inputText.clientHeight / 3);
                 
-                inputText.scrollTop = Math.max(0, targetScrollTop); // Ensure not scrolling to negative
+                inputText.scrollTop = Math.max(0, targetScrollTop);
             }
 
             let highlightTimeout;
