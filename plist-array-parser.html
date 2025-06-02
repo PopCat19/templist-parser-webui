@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Template Editor</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+        :root {
+            --md-primary: #FF8F00;
+            --md-on-primary: #1E1E1E;
+            --md-primary-container: #FFB74D;
+            --md-on-primary-container: #1E1E1E;
+            --md-secondary: #FFCC80;
+            --md-on-secondary: #1E1E1E;
+            --md-surface: #1E1E1E;
+            --md-on-surface: #FFFFFF;
+            --md-surface-variant: #2D2D2D;
+            --md-on-surface-variant: #CCCCCC;
+            --md-outline: #4A4A4A;
+            --md-error: #F44336;
+            --md-warning: #FFC107;
+            --md-background: #121212;
+            --md-shape-corner: 12px;
+            --spacing-unit: 8px;
+            --line-number-width: 40px; /* Width for line number gutter */
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-background);
+            color: var(--md-on-surface);
+            line-height: 1.6;
+            padding: calc(var(--spacing-unit) * 2);
+            min-height: 100vh;
+            transition: background-color 0.3s;
+        }
+        body.fullscreen-active { overflow: hidden; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { text-align: center; padding-top: calc(var(--spacing-unit) * 2); padding-bottom: calc(var(--spacing-unit) * 3); }
+        h1 { font-size: 2.2rem; font-weight: 700; color: var(--md-primary); margin-bottom: var(--spacing-unit); }
+        .subtitle { font-size: 1.1rem; color: var(--md-secondary); max-width: 700px; margin: 0 auto; }
+
+        .card {
+            background-color: var(--md-surface);
+            border-radius: var(--md-shape-corner);
+            padding: calc(var(--spacing-unit) * 2.5);
+            margin-bottom: calc(var(--spacing-unit) * 2.5);
+        }
+
+        .card-header {
+            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+            margin-bottom: calc(var(--spacing-unit) * 2); padding-bottom: calc(var(--spacing-unit) * 1.5);
+            border-bottom: 1px solid var(--md-outline); gap: calc(var(--spacing-unit) * 1.5);
+        }
+        .card-header h2 { width: 100%; }
+        h2 { font-size: 1.5rem; font-weight: 500; color: var(--md-primary); }
+
+        .btn-group { display: flex; gap: calc(var(--spacing-unit) * 1.5); flex-wrap: wrap; width: 100%; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: var(--spacing-unit); padding: calc(var(--spacing-unit) * 1.25) calc(var(--spacing-unit) * 2.5);
+            border-radius: 20px; border: none; font-size: 0.875rem; font-weight: 500;
+            cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease;
+            background-color: var(--md-primary); color: var(--md-on-primary);
+            flex: 1 1 auto; min-width: 120px; text-align: center;
+        }
+        .btn:hover { background-color: #E65100; }
+        .btn:active { transform: translateY(1px); }
+        .btn-outline { background-color: transparent; border: 1px solid var(--md-outline); color: var(--md-primary); }
+        .btn-outline:hover { background-color: rgba(255, 143, 0, 0.1); }
+        .btn-icon { padding: var(--spacing-unit); border-radius: 50%; min-width: 40px; min-height: 40px; flex-grow: 0; flex-shrink: 0; }
+
+        .template-selector { display: flex; flex-wrap: wrap; gap: calc(var(--spacing-unit) * 1.5); margin-bottom: calc(var(--spacing-unit) * 2); justify-content: center; }
+        .template-btn {
+            flex: 1 1 120px; min-width: 120px; text-align: center; padding: calc(var(--spacing-unit) * 1.5);
+            background-color: var(--md-surface-variant); border-radius: 8px; cursor: pointer; transition: background-color 0.2s ease;
+        }
+        .template-btn:hover { background-color: #3A3A3A; }
+        .template-btn.active { background-color: var(--md-primary-container); color: var(--md-on-primary-container); font-weight: 500; }
+
+        .editor-container {
+            display: flex;
+            position: relative;
+            border: 1px solid var(--md-outline);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .editor-container:focus-within { border-color: var(--md-primary); }
+
+        .line-numbers {
+            width: var(--line-number-width);
+            padding: calc(var(--spacing-unit) * 2) 0;
+            background-color: var(--md-surface-variant);
+            color: var(--md-on-surface-variant);
+            text-align: right;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            user-select: none;
+            overflow: hidden;
+            border-right: 1px solid var(--md-outline);
+            flex-shrink: 0;
+        }
+        .line-numbers div {
+            padding-right: var(--spacing-unit);
+            white-space: nowrap;
+            transition: background-color 0.3s;
+            height: calc(14px * 1.5);
+        }
+        .line-numbers div.highlighted {
+            background-color: rgba(255, 143, 0, 0.2);
+            color: var(--md-primary);
+        }
+
+        .input-area-wrapper { position: relative; flex-grow: 1; display: flex; }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: calc(var(--spacing-unit) * 2);
+            border: none;
+            border-radius: 0;
+            font-family: 'Roboto Mono', monospace; font-size: 14px; line-height: 1.5;
+            resize: vertical; background-color: var(--md-surface-variant); color: var(--md-on-surface);
+            display: block;
+            flex-grow: 1;
+            overflow-y: scroll;
+        }
+        textarea:focus { outline: none; }
+
+        .textarea-controls {
+            position: absolute; top: calc(var(--spacing-unit) * 1.5); right: calc(var(--spacing-unit) * 1.5);
+            z-index: 10;
+        }
+        .editor-container.fullscreen .textarea-controls {
+            top: calc(var(--spacing-unit) * 2); right: calc(var(--spacing-unit) * 2);
+        }
+        .editor-container.fullscreen .textarea-controls .btn-icon { background-color: rgba(0,0,0,0.5); color: white; }
+        .editor-container.fullscreen .textarea-controls .btn-icon:hover { background-color: rgba(0,0,0,0.7); }
+
+        .editor-container.fullscreen {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: var(--md-background); padding: calc(var(--spacing-unit) * 2);
+            z-index: 1000; display: flex; flex-direction: row;
+            border: none; border-radius: 0;
+        }
+        .editor-container.fullscreen .line-numbers { height: 100%; }
+        .editor-container.fullscreen .input-area-wrapper { height: 100%; }
+        .editor-container.fullscreen #inputText { height: 100%; min-height: 0; }
+        .editor-container.fullscreen ~ * { display: none !important; }
+
+        #lintMessages {
+            margin-top: calc(var(--spacing-unit) * 1.5); padding: var(--spacing-unit);
+            background-color: var(--md-surface-variant); border-radius: 8px;
+            font-size: 0.875rem; max-height: 150px; overflow-y: auto;
+        }
+        #lintMessages ul { list-style: none; padding: 0; margin: 0; }
+        #lintMessages li {
+            padding: calc(var(--spacing-unit) * 0.5) var(--spacing-unit);
+            border-bottom: 1px solid var(--md-outline); display: flex;
+            align-items: center; gap: var(--spacing-unit); cursor: pointer;
+        }
+        #lintMessages li:hover { background-color: rgba(255,255,255,0.05); }
+        #lintMessages li:last-child { border-bottom: none; }
+        #lintMessages .lint-error { color: var(--md-error); }
+        #lintMessages .lint-warning { color: var(--md-warning); }
+        #lintMessages .lint-icon { font-size: 1.2rem; }
+
+        .output-container { position: relative; }
+        .output-container textarea { background-color: #2D2D2D; }
+        .copy-btn { position: absolute; top: calc(var(--spacing-unit) * 2); right: calc(var(--spacing-unit) * 2); z-index: 10; }
+
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: calc(var(--spacing-unit) * 2); margin-bottom: calc(var(--spacing-unit) * 2); }
+        .feature-card { background-color: var(--md-surface-variant); border-radius: var(--md-shape-corner); padding: calc(var(--spacing-unit) * 2); }
+        .feature-card h4 { display: flex; align-items: center; gap: var(--spacing-unit); font-size: 1.1rem; margin-bottom: var(--spacing-unit); color: var(--md-secondary); }
+        .feature-card p { color: var(--md-on-surface-variant); }
+
+        .comment-toggle {
+            display: flex; align-items: center; gap: var(--spacing-unit);
+            margin-top: calc(var(--spacing-unit) * 1.5); margin-bottom: calc(var(--spacing-unit) * 0.5);
+            justify-content: flex-start;
+        }
+        .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #666; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--md-primary); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        .mobile-copy-btn { display: none; width: 100%; margin-top: calc(var(--spacing-unit) * 1.5); }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; } h2 { font-size: 1.3rem; }
+            .card-header { flex-direction: column; align-items: center; }
+            .card-header h2 { text-align: center; margin-bottom: var(--spacing-unit); }
+            .btn-group { justify-content: center; }
+            .btn-group .btn { flex-grow: 1; min-width: calc(50% - var(--spacing-unit) * 0.75); }
+            .copy-btn { display: none !important; }
+            .mobile-copy-btn { display: flex !important; }
+            .output-container textarea { padding-right: calc(var(--spacing-unit) * 2); }
+            .textarea-controls { top: var(--spacing-unit); right: var(--spacing-unit); }
+            .line-numbers { display: none; }
+            .editor-container { border: 1px solid var(--md-outline); }
+            textarea { border-radius: 8px; }
+            .editor-container.fullscreen .line-numbers { display: flex; flex-direction: column; }
+        }
+        @media (max-width: 480px) {
+            body { padding: var(--spacing-unit); }
+            .card { padding: calc(var(--spacing-unit) * 1.5); }
+            .template-selector { gap: var(--spacing-unit); }
+            .template-btn { flex-basis: calc(50% - var(--spacing-unit) * 0.5); min-width: calc(50% - var(--spacing-unit) * 0.5); padding: var(--spacing-unit); }
+            .btn-group .btn { min-width: 100%; flex-basis: 100%; }
+            .btn { padding: var(--spacing-unit) calc(var(--spacing-unit) * 1.5); font-size: 0.8rem; }
+            .btn .material-icons, .mobile-copy-btn .material-icons { font-size: 1.1rem; }
+        }
+        @media (min-width: 769px) {
+            .output-container textarea { padding-right: calc(var(--spacing-unit) * 7.5); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <header><h1>Character Template Editor</h1><p class="subtitle">Create, edit, and convert character templates with Material Design 3</p></header>
+        
+        <div class="card">
+            <div class="card-header"><h2>Template Selection</h2>
+                <div class="btn-group">
+                    <button class="btn" id="convertBtn"><i class="material-icons">swap_horiz</i> Convert to PList</button>
+                    <button class="btn btn-outline" id="clearBtn"><i class="material-icons">clear</i> Clear</button>
+                </div>
+            </div>
+            <div class="template-selector">
+                <div class="template-btn active" data-template="empty">Empty Template</div>
+                <div class="template-btn" data-template="hina">Sorasaki Hina</div>
+                <div class="template-btn" data-template="minimal">Minimal Template</div>
+                <div class="template-btn" data-template="fantasy">Fantasy Character</div>
+            </div>
+            <div class="comment-toggle">
+                <label class="switch"><input type="checkbox" id="removeComments" checked><span class="slider"></span></label>
+                <span>Remove comments during conversion</span>
+            </div>
+            
+            <div class="editor-container" id="editorContainer">
+                <div class="line-numbers" id="lineNumbers"></div>
+                <div class="input-area-wrapper" id="inputAreaWrapper">
+                    <div class="textarea-controls">
+                        <button class="btn btn-icon" id="fullscreenBtn" title="Toggle Fullscreen">
+                            <i class="material-icons" id="fullscreenIcon">fullscreen</i>
+                        </button>
+                    </div>
+                    <textarea id="inputText" placeholder="Select a template or start editing..." spellcheck="false"></textarea>
+                </div>
+            </div>
+            <div id="lintMessages"><ul></ul></div>
+        </div>
+        
+        <div class="card output-container">
+            <div class="card-header"><h2>PList Output</h2></div>
+            <textarea id="outputText" readonly placeholder="Your converted PList will appear here..."></textarea>
+            <button class="btn btn-icon copy-btn" id="copyBtn" title="Copy to clipboard"><i class="material-icons">content_copy</i></button>
+            <button class="btn mobile-copy-btn" id="mobileCopyBtn"><i class="material-icons">content_copy</i> Copy to Clipboard</button>
+        </div>
+        
+        <div class="card">
+            <h2>Features</h2>
+            <div class="features">
+                <div class="feature-card"><h4><i class="material-icons">dashboard</i> Template Selection</h4><p>Choose pre-built templates. Switch anytime.</p></div>
+                <div class="feature-card"><h4><i class="material-icons">comment</i> Comment Support</h4><p>Use // or #. Toggle removal on conversion.</p></div>
+                <div class="feature-card"><h4><i class="material-icons">code</i> PList Conversion</h4><p>Convert to single-line PList format.</p></div>
+                <div class="feature-card"><h4><i class="material-icons">fullscreen</i> Fullscreen Edit</h4><p>Toggle fullscreen mode for focused editing.</p></div>
+                <div class="feature-card"><h4><i class="material-icons">rule</i> Syntax Hints</h4><p>Basic syntax checks for your template.</p></div>
+                <div class="feature-card"><h4><i class="material-icons">format_list_numbered</i> Line Numbers</h4><p>Line numbers for easier error tracking.</p></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const templates = {
+                empty: `[\n// Top-level category: Character's core identity\nCharacter Name: \n  age(), // Example: age(25)\n  gender(), // e.g., male/female/non-binary\n  height(),\n  birthday(),\n  residence(),\n  occupation(),\n  role(),\n  title(),\n  backstory();\n  \n// Appearance details\nAppearance: \n  hair(color/length/style/texture/accessories),\n  eyes(color/shape/pupils/special_effects),\n  facial_structure(cheekbones/jawline/nose),\n  skin(tone/texture/markings),\n  body_type(build/posture/proportions),\n  body_mods(horns(type/material/glow)/wings(type/texture)),\n  outfit_top(shirt/jacket/vest),\n  outfit_bottom(pants/skirt/shorts),\n  footwear(boots/shoes/sandals),\n  accessories(jewelry/glasses/weapons),\n  color_palette(primary/secondary/accent),\n  signature_item();\n  \n// Personality and behavior\nPersona: \n  traits(), // e.g., brave/curious/reserved\n  motivations(),\n  fears(),\n  speech_patterns(formal/slang/cadence),\n  catchphrases(),\n  ethics(),\n  flaws(),\n  abilities(combat/utility/passive);\n  \n// Relationships with other characters or groups\nRelationships: \n  allies(),\n  rivals(),\n  mentors(),\n  family(),\n  factions(),\n  romantic();\n  \n// Key history and development points\nBackstory: \n  origin(),\n  turning_points(),\n  achievements(),\n  secrets();\n  \n// World context\nSetting: \n  era(),\n  location(primary/secondary),\n  culture(),\n  technology(),\n  magic();\n  \n// Tags for searching or categorization\nTags: \n  genre(),\n  tone(),\n  aesthetic(),\n  archetype()\n]`,
+                hina: `[\nCharacter Name: \n  age(17),\n  gender(female),\n  height(142cm),\n  birthday(February 19th),\n  school(Gehenna Academy),\n  club(Disciplinary Committee),\n  role(Head Prefect/Chairwoman),\n  title("Gehenna's Unstoppable Force"),\n  halo(black jagged cylinder/purple stripes/inner black circle/sharp arrow motif),\n  backstory(overworked leader/secretly desires retirement/mentally exhausted post-Eden Treaty);\n  \nAppearance: \n  hair(white/knee-length wavy/black-red ribbon tie),\n  horns(dark black/purple glowing cracks),\n  eyes(purple devil-like),\n  wings(black waist-mounted),\n  uniform(dark purple military coat/black fluffy hood/golden buttons/red armband),\n  skirt(black mini),\n  stockings(wine-purple thigh-high),\n  boots(dark purple military/gold latches),\n  firearm(MG42 machine gun/"The End: Destroyer"/spiral barrel cuts/purple glow),\n  accessory(gold monocle clip);\n  \nPersona: \n  traits(laid-back/gentle/strict when provoked/emotionally vulnerable),\n  loves(sleeping/breaks/Sensei's praise),\n  dislikes(excessive work/political schemes/being idolized),\n  catchphrases("How troublesome..."/"It's annoying, but...well, it's something I have to do"),\n  abilities(Machine Gun mastery/superhuman endurance/EX skill-"Relentless Barrage"),\n  voice(calm with tired undertones/occasionally flustered);\n  \nRelationships: \n  Ako(respected subordinate/space invader),\n  Chinatsu(paperwork supporter),\n  Iori(reckless junior),\n  Makoto(Pandemonium troublemaker),\n  Haruna(Gourmet Society rival),\n  Hiyori(Arius battlefield opponent),\n  Saori(near-fatal encounter protector),\n  Alice(post-Volume F friend/party invitee),\n  Sensei(trusted confidant/emotional anchor);\n  \nMain Story: \n  key_volumes(1/3),\n  pivotal_moments(cathedral explosion defense/Sensei rescue breakdown/ETO alliance formation);\n  \nTags: \n  Blue Archive/anime-style/school leadership/emotional depth/military aesthetic;\n  \nScenario: \n  Late-night meetings with Sensei/mall "work" outings/daytime walks/Disciplinary Committee crisis management\n]`,
+                minimal: `[\nCharacter Name: \n  age(),\n  gender(),\n  role();\n  \nAppearance: \n  hair(),\n  eyes(),\n  clothing();\n  \nPersona: \n  traits(),\n  likes(),\n  dislikes();\n  \nRelationships: \n  allies(),\n  rivals()\n]`,
+                fantasy: `[\nCharacter Name: \n  age(250),\n  gender(non-binary),\n  race(Elf),\n  class(Arcane Archer),\n  title("Forest Guardian"),\n  backstory(exiled noble/forest protector);\n  \nAppearance: \n  hair(silver/long/braided),\n  eyes(green/almond-shaped/luminescent),\n  ears(elongated/pointed),\n  skin(fair/leaf-like markings),\n  clothing(forest green tunic/brown leather vest),\n  weapon(enchanted longbow/"Whispering Wind"),\n  accessory(emerald pendant);\n  \nPersona: \n  traits(wise/patient/vengeful when provoked),\n  loves(ancient trees/starlight/archery),\n  dislikes(deforestation/dark magic/arrogance),\n  catchphrases("The forest remembers"/"My arrow finds its mark");\n  \nAbilities: \n  combat("Precision Shot"/"Multishot"),\n  magic("Nature's Embrace"/"Vine Snare"),\n  passive("Keen Senses"/"Night Vision");\n  \nRelationships: \n  Elara(mentor/mother figure),\n  Thorne(rival/former friend),\n  Sylvana(romantic interest/ally);\n  \nSetting: \n  location(Enchanted Forest of Eldoria),\n  era(Age of Awakening),\n  magic(high/nature-based)\n]`
+            };
+
+            const inputText = document.getElementById('inputText');
+            const outputText = document.getElementById('outputText');
+            const convertBtn = document.getElementById('convertBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const mobileCopyBtn = document.getElementById('mobileCopyBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const templateBtns = document.querySelectorAll('.template-btn');
+            const removeCommentsCheckbox = document.getElementById('removeComments');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const fullscreenIcon = document.getElementById('fullscreenIcon');
+            const editorContainer = document.getElementById('editorContainer');
+            const mainContainer = document.getElementById('mainContainer');
+            const lintMessagesUl = document.querySelector('#lintMessages ul');
+            const lineNumbersDiv = document.getElementById('lineNumbers');
+
+            inputText.value = templates.empty;
+            updateEditorVisuals();
+            runLinter();
+
+            templateBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    templateBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    inputText.value = templates[btn.dataset.template];
+                    inputText.scrollTop = 0; 
+                    updateEditorVisuals();
+                    runLinter();
+                });
+            });
+
+            convertBtn.addEventListener('click', convertToPList);
+            
+            function copyToClipboardHandler() {
+                outputText.select();
+                document.execCommand('copy');
+                const originalDesktopHTML = copyBtn.innerHTML;
+                const originalMobileHTML = mobileCopyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="material-icons">check</i>';
+                mobileCopyBtn.innerHTML = '<i class="material-icons">check</i> Copied!';
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalDesktopHTML;
+                    mobileCopyBtn.innerHTML = originalMobileHTML;
+                }, 2000);
+            }
+            copyBtn.addEventListener('click', copyToClipboardHandler);
+            mobileCopyBtn.addEventListener('click', copyToClipboardHandler);
+
+            clearBtn.addEventListener('click', () => {
+                inputText.value = '';
+                outputText.value = '';
+                updateEditorVisuals();
+                runLinter();
+            });
+
+            function convertToPList() {
+                let input = inputText.value;
+                if (removeCommentsCheckbox.checked) {
+                    input = input.replace(/(\/\/|#).*$/gm, '');
+                }
+                let lines = input.split('\n').map(line => line.trim()).filter(line => line !== '' && line !== '[' && line !== ']');
+                let result = lines.join(' ');
+                result = result.replace(/\s+/g, ' ');
+                result = `[${result}]`;
+                result = result.replace(/\(\s*\)/g, '');
+                outputText.value = result;
+            }
+
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && editorContainer.classList.contains('fullscreen')) {
+                    toggleFullscreen();
+                }
+            });
+
+            function toggleFullscreen() {
+                editorContainer.classList.toggle('fullscreen');
+                document.body.classList.toggle('fullscreen-active');
+                
+                Array.from(mainContainer.children).forEach(child => {
+                    if (child !== editorContainer.closest('.card')) {
+                         if (editorContainer.classList.contains('fullscreen')) {
+                            child.style.display = 'none';
+                         } else {
+                            child.style.display = '';
+                         }
+                    }
+                });
+
+                if (editorContainer.classList.contains('fullscreen')) {
+                    fullscreenIcon.textContent = 'fullscreen_exit';
+                    inputText.focus();
+                } else {
+                    fullscreenIcon.textContent = 'fullscreen';
+                }
+                updateEditorVisuals();
+            }
+
+            function updateEditorVisuals() {
+                const lines = inputText.value.split('\n').length;
+                const currentScrollTop = lineNumbersDiv.scrollTop;
+
+                lineNumbersDiv.innerHTML = '';
+                for (let i = 1; i <= lines; i++) {
+                    const div = document.createElement('div');
+                    div.textContent = i;
+                    lineNumbersDiv.appendChild(div);
+                }
+
+                if (!editorContainer.classList.contains('fullscreen')) {
+                    lineNumbersDiv.style.height = inputText.clientHeight + 'px';
+                } else {
+                    lineNumbersDiv.style.height = ''; 
+                }
+                
+                lineNumbersDiv.scrollTop = currentScrollTop;
+            }
+
+            inputText.addEventListener('scroll', () => {
+                lineNumbersDiv.scrollTop = inputText.scrollTop;
+            });
+
+            let editorUpdateTimeout;
+            inputText.addEventListener('input', () => {
+                clearTimeout(editorUpdateTimeout);
+                editorUpdateTimeout = setTimeout(() => {
+                    updateEditorVisuals();
+                    runLinter();
+                }, 150);
+            });
+            
+            new ResizeObserver(() => {
+                updateEditorVisuals();
+            }).observe(inputText);
+
+            let lintTimeout;
+            function runLinter() {
+                const text = inputText.value;
+                const errors = [];
+                const rawLines = text.split('\n');
+                let openParenCount = 0;
+                let openBracketCount = 0;
+
+                const codeLines = []; 
+                rawLines.forEach((line, index) => {
+                    const trimmedLine = line.trim();
+                    codeLines.push({ text: trimmedLine, number: index + 1, original: line });
+                    if (!trimmedLine.startsWith('//') && !trimmedLine.startsWith('#')) {
+                        for (const char of trimmedLine) {
+                            if (char === '(') openParenCount++;
+                            else if (char === ')') openParenCount--;
+                            else if (char === '[') openBracketCount++;
+                            else if (char === ']') openBracketCount--;
+                        }
+                    }
+                });
+                
+                const activeCodeLines = codeLines.filter(l => l.text !== '' && !l.text.startsWith('//') && !l.text.startsWith('#'));
+
+                if (activeCodeLines.length > 0) {
+                    if (!activeCodeLines[0].text.startsWith('[')) {
+                        errors.push({ line: activeCodeLines[0].number, msg: "Missing opening '[' at the start.", type: 'error' });
+                    }
+                    const lastMeaningfulLine = [...activeCodeLines].reverse().find(l => l.text !== '');
+                    if (lastMeaningfulLine && !lastMeaningfulLine.text.endsWith(']')) {
+                         errors.push({ line: lastMeaningfulLine.number, msg: "Missing closing ']' at the end.", type: 'error' });
+                    }
+
+                } else if (text.trim() !== '' && text.trim() !== '[]' && text.trim() !== '[ ]') {
+                     errors.push({ msg: "Content seems to be only comments or empty. Expected PList structure.", type: 'warning' });
+                }
+
+                if (openParenCount !== 0) {
+                    errors.push({ msg: `Mismatched parentheses '(' and ')' globally (balance: ${openParenCount}).`, type: 'error' });
+                }
+                if (openBracketCount !== 0) {
+                    errors.push({ msg: `Mismatched brackets '[' and ']' globally (balance: ${openBracketCount}).`, type: 'error' });
+                }
+
+                let inCategory = false;
+                for (let i = 0; i < activeCodeLines.length; i++) {
+                    const lineObj = activeCodeLines[i];
+                    const currentLine = lineObj.text;
+                    const nextLineObj = (i + 1 < activeCodeLines.length) ? activeCodeLines[i+1] : null;
+                    const nextLineText = nextLineObj ? nextLineObj.text : null;
+
+                    if (i === 0 && currentLine.startsWith('[')) continue;
+                    
+                    let isEffectivelyLastContentLine = false;
+                    if (i === activeCodeLines.length - 1) { 
+                        isEffectivelyLastContentLine = true;
+                    } else if (i === activeCodeLines.length - 2 && nextLineText === ']') { 
+                         isEffectivelyLastContentLine = true;
+                    }
+
+                    if (currentLine.match(/^[\w\s-]+:\s*$/)) { 
+                        inCategory = true;
+                        if (currentLine.slice(0, -1).trim() === "") {
+                            errors.push({ line: lineObj.number, msg: "Category name appears empty.", type: 'warning' });
+                        }
+                    } else if (inCategory) { 
+                        let lineParenBalance = 0;
+                        for (const char of currentLine) {
+                            if (char === '(') lineParenBalance++;
+                            else if (char === ')') lineParenBalance--;
+                        }
+                        if (lineParenBalance !== 0) {
+                             errors.push({ line: lineObj.number, msg: "Mismatched parentheses on this line.", type: 'error' });
+                        }
+
+                        const isLastTraitOfThisCategoryBlock = nextLineText === null || nextLineText.match(/^[\w\s-]+:\s*$/) || (nextLineObj && nextLineObj.text === ']');
+                        
+                        if (isLastTraitOfThisCategoryBlock) {
+                            if (isEffectivelyLastContentLine) { 
+                                if (currentLine.endsWith(';')) {
+                                    errors.push({ line: lineObj.number, msg: "Last category block should not end with ';'.", type: 'warning' });
+                                }
+                            } else if (nextLineText !== null) { 
+                                if (!currentLine.endsWith(';')) {
+                                    errors.push({ line: lineObj.number, msg: "End of category block? Might need a ';' before next category.", type: 'warning' });
+                                }
+                            }
+                        } else if (currentLine.endsWith(';')) { 
+                             errors.push({ line: lineObj.number, msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.", type: 'warning' });
+                        }
+                    } else if (currentLine !== '[' && currentLine !== ']') {
+                        errors.push({ line: lineObj.number, msg: "Line outside a category. Expected 'Category Name:'.", type: 'warning' });
+                    }
+                }
+                displayLintMessages(errors);
+            }
+
+            function displayLintMessages(errors) {
+                lintMessagesUl.innerHTML = '';
+                if (errors.length === 0) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<i class="material-icons lint-icon" style="color: #4CAF50;">check_circle</i> No obvious syntax issues found.`;
+                    lintMessagesUl.appendChild(li);
+                    return;
+                }
+                errors.forEach(err => {
+                    const li = document.createElement('li');
+                    const icon = err.type === 'error' ? 'error' : 'warning';
+                    const iconColor = err.type === 'error' ? 'var(--md-error)' : 'var(--md-warning)';
+                    li.innerHTML = `<i class="material-icons lint-icon" style="color:${iconColor};">${icon}</i> ${err.line ? `L${err.line}: ` : ''}${err.msg}`;
+                    if (err.line) {
+                        li.dataset.lineNumber = err.line;
+                        li.addEventListener('click', () => {
+                            scrollToLine(err.line);
+                            highlightLineNumber(err.line);
+                        });
+                    }
+                    lintMessagesUl.appendChild(li);
+                });
+            }
+
+            function scrollToLine(lineNumber) {
+                const lines = inputText.value.substring(0, inputText.value.length).split('\n');
+                let charCount = 0;
+                for (let i = 0; i < lineNumber - 1; i++) {
+                    charCount += lines[i].length + 1;
+                }
+                
+                inputText.focus();
+                // inputText.scrollTop = 0; // Temporarily removed to see if direct scroll works better
+                inputText.setSelectionRange(charCount, charCount);
+                
+                const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
+                const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
+                const targetScrollTop = (lineNumber - 1) * lineHeight + paddingTop - (inputText.clientHeight / 3);
+                
+                inputText.scrollTop = Math.max(0, targetScrollTop); // Ensure not scrolling to negative
+            }
+
+            let highlightTimeout;
+            function highlightLineNumber(lineNumber) {
+                clearTimeout(highlightTimeout);
+                lineNumbersDiv.querySelectorAll('div.highlighted').forEach(el => el.classList.remove('highlighted'));
+
+                const targetLineDiv = lineNumbersDiv.children[lineNumber - 1];
+                if (targetLineDiv) {
+                    targetLineDiv.classList.add('highlighted');
+                    highlightTimeout = setTimeout(() => {
+                        targetLineDiv.classList.remove('highlighted');
+                    }, 1500);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
