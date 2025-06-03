@@ -25,6 +25,7 @@
             --md-shape-corner: 12px;
             --spacing-unit: 8px;
             --line-number-width: 40px;
+            --textarea-highlight-color: rgba(255, 143, 0, 0.1); 
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -132,6 +133,10 @@
             display: block;
             flex-grow: 1;
             overflow-y: scroll;
+            background-image: none; 
+            background-repeat: no-repeat;
+            background-size: 100% calc(14px * 1.5); 
+            transition: background-image 0.3s; 
         }
         textarea:focus { outline: none; }
 
@@ -310,12 +315,12 @@
             const mainContainer = document.getElementById('mainContainer');
             const lintMessagesUl = document.querySelector('#lintMessages ul');
             const lineNumbersDiv = document.getElementById('lineNumbers');
-            const outputCard = document.getElementById('outputCard'); // For scrolling
+            const outputCard = document.getElementById('outputCard');
 
-            const originalConvertBtnHTML = convertBtn.innerHTML; // Store original button text
+            const originalConvertBtnHTML = convertBtn.innerHTML;
             let convertClickCount = 0;
             let convertClickTimer = null;
-            const DOUBLE_CLICK_TIMEOUT = 2000; // 2 seconds for the second click
+            const DOUBLE_CLICK_TIMEOUT = 2000;
 
             inputText.value = templates.empty;
             updateEditorVisuals();
@@ -329,23 +334,28 @@
                     inputText.scrollTop = 0; 
                     updateEditorVisuals();
                     runLinter();
-                    resetConvertButtonState(); // Reset convert button if template changes
+                    resetConvertButtonState();
                 });
             });
 
             convertBtn.addEventListener('click', handleConvertClick);
             
             function handleConvertClick() {
-                clearTimeout(convertClickTimer); // Clear any existing timer
+                clearTimeout(convertClickTimer);
                 convertClickCount++;
 
                 if (convertClickCount === 1) {
-                    convertToPList();
+                    convertToPList(); // Actual conversion happens here
                     convertBtn.innerHTML = '<i class="material-icons">arrow_downward</i> Scroll to Output?';
                     convertClickTimer = setTimeout(() => {
                         resetConvertButtonState();
                     }, DOUBLE_CLICK_TIMEOUT);
                 } else if (convertClickCount === 2) {
+                    // If convertToPList wasn't called on the first click of a double click, call it now.
+                    // This ensures output is generated even if the user double-clicks quickly.
+                    if (outputText.value === '' || outputText.value === 'Your converted PList will appear here...') {
+                        convertToPList();
+                    }
                     outputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     resetConvertButtonState();
                 }
@@ -385,11 +395,25 @@
                 if (removeCommentsCheckbox.checked) {
                     input = input.replace(/(\/\/|#).*$/gm, '');
                 }
-                let lines = input.split('\n').map(line => line.trim()).filter(line => line !== '' && line !== '[' && line !== ']');
+
+                let processedInput = input.trim();
+
+                if (processedInput.startsWith('[')) {
+                    processedInput = processedInput.substring(1);
+                }
+                if (processedInput.endsWith(']')) {
+                    processedInput = processedInput.substring(0, processedInput.length - 1);
+                }
+
+                let lines = processedInput.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line !== '');
+
                 let result = lines.join(' ');
                 result = result.replace(/\s+/g, ' ');
-                result = `[${result}]`;
                 result = result.replace(/\(\s*\)/g, '');
+                result = `[${result}]`;
+                
                 outputText.value = result;
             }
 
@@ -445,6 +469,10 @@
 
             inputText.addEventListener('scroll', () => {
                 lineNumbersDiv.scrollTop = inputText.scrollTop;
+                 // Adjust mobile highlight on scroll if active
+                if (window.getComputedStyle(lineNumbersDiv).display === 'none' && inputText.style.backgroundImage !== 'none') {
+                     inputText.style.backgroundPosition = `0 ${inputText.scrollTop * -1}px`;
+                }
             });
 
             let editorUpdateTimeout;
@@ -454,7 +482,7 @@
                     updateEditorVisuals();
                     runLinter();
                 }, 150);
-                resetConvertButtonState(); // Reset if user types after first click
+                resetConvertButtonState();
             });
             
             new ResizeObserver(() => {
@@ -575,7 +603,7 @@
                         li.dataset.lineNumber = err.line;
                         li.addEventListener('click', () => {
                             scrollToLine(err.line);
-                            highlightLineNumber(err.line);
+                            highlightLine(err.line);
                         });
                     }
                     lintMessagesUl.appendChild(li);
@@ -600,15 +628,30 @@
             }
 
             let highlightTimeout;
-            function highlightLineNumber(lineNumber) {
+            function highlightLine(lineNumber) {
                 clearTimeout(highlightTimeout);
-                lineNumbersDiv.querySelectorAll('div.highlighted').forEach(el => el.classList.remove('highlighted'));
+                
+                if (window.getComputedStyle(lineNumbersDiv).display !== 'none') {
+                    lineNumbersDiv.querySelectorAll('div.highlighted').forEach(el => el.classList.remove('highlighted'));
+                    const targetLineDiv = lineNumbersDiv.children[lineNumber - 1];
+                    if (targetLineDiv) {
+                        targetLineDiv.classList.add('highlighted');
+                        highlightTimeout = setTimeout(() => {
+                            targetLineDiv.classList.remove('highlighted');
+                        }, 1500);
+                    }
+                } else { 
+                    const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
+                    const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
+                    // Calculate Y position relative to the current scroll position of the textarea
+                    const highlightYPositionInTextarea = (lineNumber - 1) * lineHeight + paddingTop - inputText.scrollTop;
 
-                const targetLineDiv = lineNumbersDiv.children[lineNumber - 1];
-                if (targetLineDiv) {
-                    targetLineDiv.classList.add('highlighted');
+                    inputText.style.backgroundImage = `linear-gradient(transparent, transparent ${highlightYPositionInTextarea -1}px, var(--textarea-highlight-color) ${highlightYPositionInTextarea -1}px, var(--textarea-highlight-color) ${highlightYPositionInTextarea + lineHeight -1}px, transparent ${highlightYPositionInTextarea + lineHeight -1}px)`;
+                    // background-position is not needed here as the gradient is calculated relative to the viewport of the textarea
+                    // inputText.style.backgroundPosition = `0 0`; // Ensure it's from the top of the textarea content
+
                     highlightTimeout = setTimeout(() => {
-                        targetLineDiv.classList.remove('highlighted');
+                        inputText.style.backgroundImage = 'none';
                     }, 1500);
                 }
             }
