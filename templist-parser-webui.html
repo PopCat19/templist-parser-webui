@@ -528,6 +528,51 @@
                     errors.push({ msg: `Mismatched brackets '[' and ']' globally (balance: ${openBracketCount}).`, type: 'error' });
                 }
 
+                // Check for duplicate symbols (except inside quotes and parentheses)
+                for (const lineObj of activeCodeLines) {
+                    const line = lineObj.text;
+                    let inSingleQuote = false;
+                    let inDoubleQuote = false;
+                    let inParen = 0;
+                    let prevChar = '';
+                    
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        
+                        // Handle quotes and parentheses
+                        if (char === "'" && !inDoubleQuote && !inSingleQuote) {
+                            inSingleQuote = true;
+                        } else if (char === "'" && inSingleQuote) {
+                            inSingleQuote = false;
+                        } else if (char === '"' && !inSingleQuote && !inDoubleQuote) {
+                            inDoubleQuote = true;
+                        } else if (char === '"' && inDoubleQuote) {
+                            inDoubleQuote = false;
+                        } else if (char === '(' && !inSingleQuote && !inDoubleQuote) {
+                            inParen++;
+                        } else if (char === ')' && !inSingleQuote && !inDoubleQuote && inParen > 0) {
+                            inParen--;
+                        }
+                        
+                        // Skip checking if inside quotes or parentheses
+                        if (inSingleQuote || inDoubleQuote || inParen > 0) {
+                            prevChar = ''; // Reset prevChar so it doesn't carry over from inside quotes/parens
+                            continue;
+                        }
+                        
+                        // Check for duplicate symbols
+                        if ('[];,:'.includes(char) && char === prevChar) { // Added colon to the list
+                            errors.push({ 
+                                line: lineObj.number, 
+                                msg: `Duplicate symbol '${char}' detected.`, 
+                                type: 'warning' 
+                            });
+                        }
+                        
+                        prevChar = char;
+                    }
+                }
+
                 let inCategory = false;
                 for (let i = 0; i < activeCodeLines.length; i++) {
                     const lineObj = activeCodeLines[i];
