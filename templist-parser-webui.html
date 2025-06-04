@@ -563,16 +563,21 @@
                         
                         if (isLastTraitOfThisCategoryBlock) {
                             if (isEffectivelyLastContentLine) { 
-                                if (currentLine.endsWith(';')) {
+                                const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
+                                if (lineWithoutComment.endsWith(';')) {
                                     errors.push({ line: lineObj.number, msg: "Last category block should not end with ';'.", type: 'warning' });
                                 }
                             } else if (nextLineText !== null) { 
-                                if (!currentLine.endsWith(';')) {
+                                const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
+                                if (!lineWithoutComment.endsWith(';')) {
                                     errors.push({ line: lineObj.number, msg: "End of category block? Might need a ';' before next category.", type: 'warning' });
                                 }
                             }
-                        } else if (currentLine.endsWith(';')) { 
-                             errors.push({ line: lineObj.number, msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.", type: 'warning' });
+                        } else {
+                            const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
+                            if (lineWithoutComment.endsWith(';')) { 
+                                 errors.push({ line: lineObj.number, msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.", type: 'warning' });
+                            }
                         }
                     } else if (currentLine !== '[' && currentLine !== ']') {
                         errors.push({ line: lineObj.number, msg: "Line outside a category. Expected 'Category Name:'.", type: 'warning' });
