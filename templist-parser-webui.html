@@ -49,7 +49,7 @@
             border-radius: 20px; border: none; font-size: 0.875rem; font-weight: 500; cursor: pointer;
             transition: background-color 0.2s, transform 0.2s, color 0.2s, opacity 0.3s;
         }
-        .btn { 
+        .btn {
             padding: calc(var(--spacing-unit) * 1.25) calc(var(--spacing-unit) * 2.5);
             background-color: var(--md-primary); color: var(--md-on-primary);
             flex: 1 1 auto; min-width: 120px; text-align: center;
@@ -60,8 +60,8 @@
         .btn-outline:hover { background-color: rgba(255, 143, 0, 0.1); }
         .btn-icon { padding: var(--spacing-unit); border-radius: 50%; min-width: 40px; min-height: 40px; flex: 0 0 auto; }
 
-        .template-selector { 
-            display: flex; flex-wrap: wrap; gap: calc(var(--spacing-unit) * 1.5); 
+        .template-selector {
+            display: flex; flex-wrap: wrap; gap: calc(var(--spacing-unit) * 1.5);
             margin-bottom: calc(var(--spacing-unit) * 2); justify-content: center;
         }
         .template-btn {
@@ -92,8 +92,8 @@
         .input-area-wrapper { position: relative; flex-grow: 1; display: flex; }
         textarea {
             width: 100%; min-height: 300px; padding: calc(var(--spacing-unit) * 2); flex-grow: 1;
-            border: none; border-radius: 0; font-family: 'Roboto Mono', monospace; font-size: 14px; 
-            line-height: 1.5; resize: vertical; background-color: var(--md-surface-variant); 
+            border: none; border-radius: 0; font-family: 'Roboto Mono', monospace; font-size: 14px;
+            line-height: 1.5; resize: vertical; background-color: var(--md-surface-variant);
             color: var(--md-on-surface); display: block; overflow-y: scroll; background-image: none;
             background-repeat: no-repeat; background-size: 100% calc(14px * 1.5); transition: background-image 0.3s;
         }
@@ -103,25 +103,25 @@
         .textarea-controls {
             position: absolute; top: calc(var(--spacing-unit) * 1.5); right: calc(var(--spacing-unit) * 1.5); z-index: 10;
         }
-        .editor-container.fullscreen { 
+        .editor-container.fullscreen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1000;
-            background-color: var(--md-background); padding: calc(var(--spacing-unit) * 2); border: none; 
+            background-color: var(--md-background); padding: calc(var(--spacing-unit) * 2); border: none;
             border-radius: 0; flex-direction: row;
         }
-        .editor-container.fullscreen .line-numbers, 
+        .editor-container.fullscreen .line-numbers,
         .editor-container.fullscreen .input-area-wrapper { height: 100%; }
         .editor-container.fullscreen #inputText { height: 100%; min-height: 0; }
         .editor-container.fullscreen ~ * { display: none !important; }
         .editor-container.fullscreen .textarea-controls {
             top: calc(var(--spacing-unit) * 2); right: calc(var(--spacing-unit) * 2);
         }
-        .editor-container.fullscreen .textarea-controls .btn-icon { 
-            background-color: rgba(0,0,0,0.5); color: white; 
+        .editor-container.fullscreen .textarea-controls .btn-icon {
+            background-color: rgba(0,0,0,0.5); color: white;
         }
         .editor-container.fullscreen .textarea-controls .btn-icon:hover { background-color: rgba(0,0,0,0.7); }
 
         #lintMessages {
-            margin-top: calc(var(--spacing-unit) * 1.5); padding: var(--spacing-unit); max-height: 150px; 
+            margin-top: calc(var(--spacing-unit) * 1.5); padding: var(--spacing-unit); max-height: 150px;
             overflow-y: auto; background-color: var(--md-surface-variant); border-radius: 8px; font-size: 0.875rem;
         }
         #lintMessages ul { list-style: none; padding: 0; margin: 0; }
@@ -139,16 +139,16 @@
         .copy-btn { position: absolute; top: calc(var(--spacing-unit) * 2); right: calc(var(--spacing-unit) * 2); z-index: 10; }
         .mobile-copy-btn { display: none; width: 100%; margin-top: calc(var(--spacing-unit) * 1.5); }
 
-        .features { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+        .features {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: calc(var(--spacing-unit) * 2); margin-bottom: calc(var(--spacing-unit) * 2);
         }
-        .feature-card { 
-            background-color: var(--md-surface-variant); border-radius: var(--md-shape-corner); 
+        .feature-card {
+            background-color: var(--md-surface-variant); border-radius: var(--md-shape-corner);
             padding: calc(var(--spacing-unit) * 2);
         }
-        .feature-card h4 { 
-            display: flex; align-items: center; gap: var(--spacing-unit); 
+        .feature-card h4 {
+            display: flex; align-items: center; gap: var(--spacing-unit);
             font-size: 1.1rem; margin-bottom: var(--spacing-unit); color: var(--md-secondary);
         }
         .feature-card p { color: var(--md-on-surface-variant); }
@@ -159,12 +159,12 @@
         }
         .switch { position: relative; display: inline-block; width: 42px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { 
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
             background-color: #666; transition: .4s; border-radius: 24px;
         }
-        .slider:before { 
-            position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; 
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px;
             background-color: white; transition: .4s; border-radius: 50%;
         }
         input:checked + .slider { background-color: var(--md-primary); }
@@ -214,7 +214,7 @@
                 <i class="material-icons" style="vertical-align: middle; font-size: 1.2em;">code</i> View on GitHub
             </a>
         </header>
-        
+
         <div class="card">
             <div class="card-header"><h2>Template Selection</h2>
                 <div class="btn-group">
@@ -232,7 +232,7 @@
                 <label class="switch"><input type="checkbox" id="removeComments" checked><span class="slider"></span></label>
                 <span>Remove comments during conversion</span>
             </div>
-            
+
             <div class="editor-container" id="editorContainer">
                 <div class="line-numbers" id="lineNumbers"></div>
                 <div class="input-area-wrapper" id="inputAreaWrapper">
@@ -246,14 +246,14 @@
             </div>
             <div id="lintMessages"><ul></ul></div>
         </div>
-        
+
         <div class="card output-container" id="outputCard">
             <div class="card-header"><h2>PList Output</h2></div>
             <textarea id="outputText" readonly placeholder="Your converted PList will appear here..."></textarea>
             <button class="btn btn-icon copy-btn" id="copyBtn" title="Copy to clipboard"><i class="material-icons">content_copy</i></button>
             <button class="btn mobile-copy-btn" id="mobileCopyBtn"><i class="material-icons">content_copy</i> Copy to Clipboard</button>
         </div>
-        
+
         <div class="card">
             <h2>Features</h2>
             <div class="features">
@@ -324,13 +324,13 @@
                     console.error(`Error fetching template "${templateKey}":`, error);
                     inputText.value = `Error loading template: ${templateKey}\n\n${error.message}\n\nEnsure the file exists at '${filePath}' (relative to the HTML file) and that you are serving this page via an HTTP server (not directly from file:///), especially for local development.`;
                 } finally {
-                    inputText.scrollTop = 0; 
+                    inputText.scrollTop = 0;
                     updateEditorVisuals();
                     runLinter();
                     resetConvertButtonState();
                 }
             }
-            
+
             loadTemplate('empty'); // Load default template on page load
 
             templateBtns.forEach(btn => {
@@ -342,7 +342,7 @@
             });
 
             convertBtn.addEventListener('click', handleConvertClick);
-            
+
             function handleConvertClick() {
                 clearTimeout(convertClickTimer);
                 convertClickCount++;
@@ -367,7 +367,7 @@
                 convertBtn.innerHTML = originalConvertBtnHTML;
                 clearTimeout(convertClickTimer);
             }
-            
+
             function copyToClipboardHandler() {
                 outputText.select();
                 document.execCommand('copy');
@@ -423,7 +423,7 @@
             function toggleFullscreen() {
                 editorContainer.classList.toggle('fullscreen');
                 document.body.classList.toggle('fullscreen-active');
-                
+
                 Array.from(mainContainer.children).forEach(child => {
                     if (child !== editorContainer.closest('.card')) {
                          if (editorContainer.classList.contains('fullscreen')) {
@@ -457,9 +457,9 @@
                 if (!editorContainer.classList.contains('fullscreen')) {
                     lineNumbersDiv.style.height = inputText.clientHeight + 'px';
                 } else {
-                    lineNumbersDiv.style.height = ''; 
+                    lineNumbersDiv.style.height = '';
                 }
-                
+
                 lineNumbersDiv.scrollTop = currentScrollTop;
             }
 
@@ -479,12 +479,12 @@
                 }, 150);
                 resetConvertButtonState();
             });
-            
+
             new ResizeObserver(() => {
                 updateEditorVisuals();
             }).observe(inputText);
 
-            let lintTimeout;
+            let lintTimeout; // Not used, but kept for consistency if needed later
             function runLinter() {
                 const text = inputText.value;
                 const errors = [];
@@ -492,11 +492,18 @@
                 let openParenCount = 0;
                 let openBracketCount = 0;
 
-                const codeLines = []; 
+                const codeLines = [];
                 rawLines.forEach((line, index) => {
                     const trimmedLine = line.trim();
-                    codeLines.push({ text: trimmedLine, number: index + 1, original: line });
-                    if (!trimmedLine.startsWith('//') && !trimmedLine.startsWith('#')) {
+                    codeLines.push({
+                        text: trimmedLine,
+                        number: index + 1,
+                        original: line,
+                    });
+                    if (
+                        !trimmedLine.startsWith('//') &&
+                        !trimmedLine.startsWith('#')
+                    ) {
                         for (const char of trimmedLine) {
                             if (char === '(') openParenCount++;
                             else if (char === ')') openParenCount--;
@@ -505,41 +512,69 @@
                         }
                     }
                 });
-                
-                const activeCodeLines = codeLines.filter(l => l.text !== '' && !l.text.startsWith('//') && !l.text.startsWith('#'));
+
+                const activeCodeLines = codeLines.filter(
+                    (l) =>
+                        l.text !== '' &&
+                        !l.text.startsWith('//') &&
+                        !l.text.startsWith('#'),
+                );
 
                 if (activeCodeLines.length > 0) {
                     if (!activeCodeLines[0].text.startsWith('[')) {
-                        errors.push({ line: activeCodeLines[0].number, msg: "Missing opening '[' at the start.", type: 'error' });
+                        errors.push({
+                            line: activeCodeLines[0].number,
+                            msg: "Missing opening '[' at the start.",
+                            type: 'error',
+                        });
                     }
-                    const lastMeaningfulLine = [...activeCodeLines].reverse().find(l => l.text !== '');
-                    if (lastMeaningfulLine && !lastMeaningfulLine.text.endsWith(']')) {
-                         errors.push({ line: lastMeaningfulLine.number, msg: "Missing closing ']' at the end.", type: 'error' });
+                    const lastMeaningfulLine = [...activeCodeLines]
+                        .reverse()
+                        .find((l) => l.text !== '');
+                    if (
+                        lastMeaningfulLine &&
+                        !lastMeaningfulLine.text.endsWith(']')
+                    ) {
+                        errors.push({
+                            line: lastMeaningfulLine.number,
+                            msg: "Missing closing ']' at the end.",
+                            type: 'error',
+                        });
                     }
-
-                } else if (text.trim() !== '' && text.trim() !== '[]' && text.trim() !== '[ ]') {
-                     errors.push({ msg: "Content seems to be only comments or empty. Expected PList structure.", type: 'warning' });
+                } else if (
+                    text.trim() !== '' &&
+                    text.trim() !== '[]' &&
+                    text.trim() !== '[ ]'
+                ) {
+                    errors.push({
+                        msg: 'Content seems to be only comments or empty. Expected PList structure.',
+                        type: 'warning',
+                    });
                 }
 
                 if (openParenCount !== 0) {
-                    errors.push({ msg: `Mismatched parentheses '(' and ')' globally (balance: ${openParenCount}).`, type: 'error' });
+                    errors.push({
+                        msg: `Mismatched parentheses '(' and ')' globally (balance: ${openParenCount}).`,
+                        type: 'error',
+                    });
                 }
                 if (openBracketCount !== 0) {
-                    errors.push({ msg: `Mismatched brackets '[' and ']' globally (balance: ${openBracketCount}).`, type: 'error' });
+                    errors.push({
+                        msg: `Mismatched brackets '[' and ']' globally (balance: ${openBracketCount}).`,
+                        type: 'error',
+                    });
                 }
 
-                // Check for duplicate symbols (except inside quotes and parentheses)
                 for (const lineObj of activeCodeLines) {
                     const line = lineObj.text;
                     let inSingleQuote = false;
                     let inDoubleQuote = false;
                     let inParen = 0;
                     let prevChar = '';
-                    
+
                     for (let i = 0; i < line.length; i++) {
                         const char = line[i];
-                        
-                        // Handle quotes and parentheses
+
                         if (char === "'" && !inDoubleQuote && !inSingleQuote) {
                             inSingleQuote = true;
                         } else if (char === "'" && inSingleQuote) {
@@ -550,25 +585,27 @@
                             inDoubleQuote = false;
                         } else if (char === '(' && !inSingleQuote && !inDoubleQuote) {
                             inParen++;
-                        } else if (char === ')' && !inSingleQuote && !inDoubleQuote && inParen > 0) {
+                        } else if (
+                            char === ')' &&
+                            !inSingleQuote &&
+                            !inDoubleQuote &&
+                            inParen > 0
+                        ) {
                             inParen--;
                         }
-                        
-                        // Skip checking if inside quotes or parentheses
+
                         if (inSingleQuote || inDoubleQuote || inParen > 0) {
-                            prevChar = ''; // Reset prevChar so it doesn't carry over from inside quotes/parens
+                            prevChar = '';
                             continue;
                         }
-                        
-                        // Check for duplicate symbols
-                        if ('[];,:'.includes(char) && char === prevChar) { // Added colon to the list
-                            errors.push({ 
-                                line: lineObj.number, 
-                                msg: `Duplicate symbol '${char}' detected.`, 
-                                type: 'warning' 
+
+                        if ('[];,:'.includes(char) && char === prevChar) {
+                            errors.push({
+                                line: lineObj.number,
+                                msg: `Duplicate symbol '${char}' detected.`,
+                                type: 'warning',
                             });
                         }
-                        
                         prevChar = char;
                     }
                 }
@@ -577,59 +614,112 @@
                 for (let i = 0; i < activeCodeLines.length; i++) {
                     const lineObj = activeCodeLines[i];
                     const currentLine = lineObj.text;
-                    const nextLineObj = (i + 1 < activeCodeLines.length) ? activeCodeLines[i+1] : null;
+                    const nextLineObj =
+                        i + 1 < activeCodeLines.length
+                            ? activeCodeLines[i + 1]
+                            : null;
                     const nextLineText = nextLineObj ? nextLineObj.text : null;
 
                     if (i === 0 && currentLine.startsWith('[')) continue;
-                    
+
                     let isEffectivelyLastContentLine = false;
-                    if (i === activeCodeLines.length - 1) { 
+                    if (i === activeCodeLines.length - 1) {
                         isEffectivelyLastContentLine = true;
-                    } else if (i === activeCodeLines.length - 2 && nextLineText === ']') { 
-                         isEffectivelyLastContentLine = true;
+                    } else if (
+                        i === activeCodeLines.length - 2 &&
+                        nextLineText === ']'
+                    ) {
+                        isEffectivelyLastContentLine = true;
                     }
 
-                    if (currentLine.match(/^[\w\s-]+:\s*$/)) { 
+                    if (currentLine.match(/^[\w\s-]+:\s*$/)) {
                         inCategory = true;
-                        if (currentLine.slice(0, -1).trim() === "") {
-                            errors.push({ line: lineObj.number, msg: "Category name appears empty.", type: 'warning' });
+                        if (currentLine.slice(0, -1).trim() === '') {
+                            errors.push({
+                                line: lineObj.number,
+                                msg: 'Category name appears empty.',
+                                type: 'warning',
+                            });
                         }
-                    } else if (inCategory) { 
+                    } else if (inCategory) {
                         let lineParenBalance = 0;
                         for (const char of currentLine) {
                             if (char === '(') lineParenBalance++;
                             else if (char === ')') lineParenBalance--;
                         }
-                        if (lineParenBalance !== 0) {
-                             errors.push({ line: lineObj.number, msg: "Mismatched parentheses on this line.", type: 'error' });
-                        }
 
-                        const isLastTraitOfThisCategoryBlock = nextLineText === null || nextLineText.match(/^[\w\s-]+:\s*$/) || (nextLineObj && nextLineObj.text === ']');
-                        
+                        // --- START HOTFIX ---
+                        if (lineParenBalance !== 0) {
+                            // If global parenthesis count (openParenCount) is zero,
+                            // it means all parentheses are balanced overall.
+                            // A non-zero lineParenBalance in this case implies a valid multi-line structure.
+                            // So, don't report it as a line-specific error. The global check handles overall imbalance.
+                            if (openParenCount !== 0) {
+                                // Only report as a line-specific error if global is also unbalanced.
+                                // This makes it a symptom of the larger problem.
+                                errors.push({
+                                    line: lineObj.number,
+                                    msg: 'Mismatched parentheses on this line (contributes to global imbalance).',
+                                    type: 'error',
+                                });
+                            }
+                            // If openParenCount === 0, this line is part of a balanced multi-line expression.
+                            // No per-line error will be generated here in that case.
+                        }
+                        // --- END HOTFIX ---
+
+                        const isLastTraitOfThisCategoryBlock =
+                            nextLineText === null ||
+                            nextLineText.match(/^[\w\s-]+:\s*$/) ||
+                            (nextLineObj && nextLineObj.text === ']');
+
                         if (isLastTraitOfThisCategoryBlock) {
-                            if (isEffectivelyLastContentLine) { 
-                                const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
+                            if (isEffectivelyLastContentLine) {
+                                const lineWithoutComment = currentLine
+                                    .replace(/(\/\/|#).*$/, '')
+                                    .trim();
                                 if (lineWithoutComment.endsWith(';')) {
-                                    errors.push({ line: lineObj.number, msg: "Last category block should not end with ';'.", type: 'warning' });
+                                    errors.push({
+                                        line: lineObj.number,
+                                        msg: "Last category block should not end with ';'.",
+                                        type: 'warning',
+                                    });
                                 }
-                            } else if (nextLineText !== null) { 
-                                const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
+                            } else if (nextLineText !== null) {
+                                const lineWithoutComment = currentLine
+                                    .replace(/(\/\/|#).*$/, '')
+                                    .trim();
                                 if (!lineWithoutComment.endsWith(';')) {
-                                    errors.push({ line: lineObj.number, msg: "End of category block? Might need a ';' before next category.", type: 'warning' });
+                                    errors.push({
+                                        line: lineObj.number,
+                                        msg: "End of category block? Might need a ';' before next category.",
+                                        type: 'warning',
+                                    });
                                 }
                             }
                         } else {
-                            const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
-                            if (lineWithoutComment.endsWith(';')) { 
-                                 errors.push({ line: lineObj.number, msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.", type: 'warning' });
+                            const lineWithoutComment = currentLine
+                                .replace(/(\/\/|#).*$/, '')
+                                .trim();
+                            if (lineWithoutComment.endsWith(';')) {
+                                errors.push({
+                                    line: lineObj.number,
+                                    msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.",
+                                    type: 'warning',
+                                });
                             }
                         }
                     } else if (currentLine !== '[' && currentLine !== ']') {
-                        errors.push({ line: lineObj.number, msg: "Line outside a category. Expected 'Category Name:'.", type: 'warning' });
+                        errors.push({
+                            line: lineObj.number,
+                            msg: "Line outside a category. Expected 'Category Name:'.",
+                            type: 'warning',
+                        });
                     }
                 }
                 displayLintMessages(errors);
             }
+
 
             function displayLintMessages(errors) {
                 lintMessagesUl.innerHTML = '';
@@ -661,21 +751,21 @@
                 for (let i = 0; i < lineNumber - 1; i++) {
                     charCount += lines[i].length + 1;
                 }
-                
+
                 inputText.focus();
                 inputText.setSelectionRange(charCount, charCount);
-                
+
                 const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
                 const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
                 const targetScrollTop = (lineNumber - 1) * lineHeight + paddingTop - (inputText.clientHeight / 3);
-                
+
                 inputText.scrollTop = Math.max(0, targetScrollTop);
             }
 
             let highlightTimeout;
             function highlightLine(lineNumber) {
                 clearTimeout(highlightTimeout);
-                
+
                 if (window.getComputedStyle(lineNumbersDiv).display !== 'none') {
                     lineNumbersDiv.querySelectorAll('div.highlighted').forEach(el => el.classList.remove('highlighted'));
                     const targetLineDiv = lineNumbersDiv.children[lineNumber - 1];
@@ -685,7 +775,7 @@
                             targetLineDiv.classList.remove('highlighted');
                         }, 1500);
                     }
-                } else { 
+                } else {
                     const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
                     const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
                     const highlightYPositionInTextarea = (lineNumber - 1) * lineHeight + paddingTop - inputText.scrollTop;
