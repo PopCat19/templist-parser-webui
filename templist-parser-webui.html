@@ -190,6 +190,9 @@
             .editor-container, textarea { border-radius: 8px; }
             .editor-container.fullscreen .line-numbers { display: flex; flex-direction: column; }
             #scrollToTopBtn { bottom: calc(var(--spacing-unit) * 2); right: calc(var(--spacing-unit) * 2); }
+            .stash-controls { flex-direction: column; align-items: stretch; }
+            .stash-controls > div, .stash-controls > button { width: 100%; margin-bottom: var(--spacing-unit); }
+            .stash-controls > div { justify-content: space-between; }
         }
         @media (max-width: 480px) {
             body { padding: var(--spacing-unit); }
@@ -229,11 +232,25 @@
                 <div class="template-btn" data-template="minimal">Minimal Template</div>
                 <div class="template-btn" data-template="fantasy">Fantasy Character</div>
             </div>
+
+            <div class="stash-controls" style="display: flex; flex-wrap: wrap; gap: calc(var(--spacing-unit) * 1.5); align-items: center; margin-bottom: calc(var(--spacing-unit) * 2); justify-content: space-around; padding: var(--spacing-unit) 0; border-top: 1px solid var(--md-outline); border-bottom: 1px solid var(--md-outline); margin-top: var(--spacing-unit);">
+                <div class="comment-toggle" style="margin: 0;">
+                    <label class="switch">
+                        <input type="checkbox" id="autoStashToggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span style="font-size: 0.875rem;">Auto-Save Draft</span>
+                </div>
+                <button class="btn btn-outline" id="manualStashBtn" style="flex-grow: 0; min-width: auto; padding: calc(var(--spacing-unit)*0.8) calc(var(--spacing-unit)*1.5);"><i class="material-icons">save</i> Save Draft</button>
+                <button class="btn btn-outline" id="loadStashBtn" style="flex-grow: 0; min-width: auto; padding: calc(var(--spacing-unit)*0.8) calc(var(--spacing-unit)*1.5);"><i class="material-icons">restore</i> Load Draft</button>
+                <button class="btn btn-outline btn-icon" id="clearStashBtn" title="Clear Saved Draft" style="flex-grow: 0; border-color: var(--md-warning); color: var(--md-warning); min-width: auto; padding: calc(var(--spacing-unit)*0.8);"><i class="material-icons">delete_sweep</i></button>
+            </div>
+
             <div class="comment-toggle">
                 <label class="switch"><input type="checkbox" id="removeComments" checked><span class="slider"></span></label>
                 <span>Remove comments during conversion</span>
             </div>
-
+            
             <div class="editor-container" id="editorContainer">
                 <div class="line-numbers" id="lineNumbers"></div>
                 <div class="input-area-wrapper" id="inputAreaWrapper">
@@ -300,12 +317,146 @@
             const outputCard = document.getElementById('outputCard');
             const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
+            // Stash Controls
+            const autoStashToggle = document.getElementById('autoStashToggle');
+            const manualStashBtn = document.getElementById('manualStashBtn');
+            const loadStashBtn = document.getElementById('loadStashBtn');
+            const clearStashBtn = document.getElementById('clearStashBtn');
+
+            const STASH_KEY = 'templistParserInputStash';
+            const AUTO_STASH_ENABLED_KEY = 'templistParserAutoStashEnabled';
+
+            let isDirty = false;
+            let stashTimeout = null;
+            const STASH_DEBOUNCE_TIME = 2000; // 2 seconds
+
             const originalConvertBtnHTML = convertBtn.innerHTML;
             let convertClickCount = 0;
             let convertClickTimer = null;
             const DOUBLE_CLICK_TIMEOUT = 2000;
 
+            // --- Dirty Flag and Stash Logic ---
+            function markDirty(makeDirty = true) {
+                isDirty = makeDirty;
+                if (makeDirty && autoStashToggle.checked) {
+                    clearTimeout(stashTimeout);
+                    stashTimeout = setTimeout(() => {
+                        stashInput(true); // true for auto-stash (silent)
+                    }, STASH_DEBOUNCE_TIME);
+                }
+            }
+
+            function stashInput(isAuto = false) {
+                localStorage.setItem(STASH_KEY, inputText.value);
+                markDirty(false); // Stashing counts as saving the current state
+                
+                if (!isAuto) {
+                    const originalText = manualStashBtn.innerHTML;
+                    manualStashBtn.innerHTML = '<i class="material-icons">check</i> Saved!';
+                    setTimeout(() => {
+                        manualStashBtn.innerHTML = '<i class="material-icons">save</i> Save Draft';
+                    }, 1500);
+                }
+                console.log(isAuto ? "Auto-stashed." : "Manually stashed.");
+            }
+
+            function loadStashedInput() {
+                const stashedText = localStorage.getItem(STASH_KEY);
+                if (stashedText !== null) {
+                    if (isDirty && !confirm("You have unsaved changes. Load draft and overwrite current input?")) {
+                        return;
+                    }
+                    inputText.value = stashedText;
+                    updateEditorVisuals();
+                    runLinter();
+                    markDirty(false);
+                    const originalText = loadStashBtn.innerHTML;
+                    loadStashBtn.innerHTML = '<i class="material-icons">done_all</i> Loaded!';
+                    setTimeout(() => {
+                        loadStashBtn.innerHTML = '<i class="material-icons">restore</i> Load Draft';
+                    }, 1500);
+                    console.log("Stashed input loaded.");
+                } else {
+                    const originalText = loadStashBtn.innerHTML;
+                    loadStashBtn.innerHTML = '<i class="material-icons">info</i> No Draft!';
+                    setTimeout(() => {
+                        loadStashBtn.innerHTML = '<i class="material-icons">restore</i> Load Draft';
+                    }, 1500);
+                }
+            }
+
+            function clearStashedInput() {
+                if (confirm("Are you sure you want to clear the saved draft from your browser? This cannot be undone.")) {
+                    localStorage.removeItem(STASH_KEY);
+                    console.log("Stash cleared.");
+                    const originalText = clearStashBtn.innerHTML;
+                    clearStashBtn.innerHTML = '<i class="material-icons">check</i> Cleared!';
+                    setTimeout(() => {
+                        clearStashBtn.innerHTML = '<i class="material-icons">delete_sweep</i>';
+                    }, 1500);
+                }
+            }
+
+            autoStashToggle.addEventListener('change', function() {
+                localStorage.setItem(AUTO_STASH_ENABLED_KEY, this.checked);
+                if (this.checked && inputText.value.trim() !== "") {
+                    stashInput(true); // Stash immediately if enabling and there's content
+                }
+            });
+            manualStashBtn.addEventListener('click', () => stashInput(false));
+            loadStashBtn.addEventListener('click', loadStashedInput);
+            clearStashBtn.addEventListener('click', clearStashedInput);
+
+            // --- Initialize Stash State on Page Load ---
+            function initializeAppSate() {
+                const autoStashWasEnabled = localStorage.getItem(AUTO_STASH_ENABLED_KEY) === 'true';
+                autoStashToggle.checked = autoStashWasEnabled;
+
+                const stashedText = localStorage.getItem(STASH_KEY);
+                let loadedFromStash = false;
+                if (stashedText !== null) {
+                    if (confirm("A saved draft was found. Load it?")) {
+                        inputText.value = stashedText;
+                        loadedFromStash = true;
+                    }
+                }
+
+                if (loadedFromStash) {
+                    updateEditorVisuals();
+                    runLinter();
+                    markDirty(false);
+                } else {
+                    loadTemplate('empty'); // Load default if no stash loaded
+                }
+            }
+
+            initializeAppSate(); // Call initialization
+
+            // --- `beforeunload` warning ---
+            window.addEventListener('beforeunload', function (e) {
+                if (isDirty) {
+                    e.preventDefault(); // For modern browsers
+                    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'; // For older browsers
+                    return 'You have unsaved changes. Are you sure you want to leave?'; // For some other browsers
+                }
+            });
+
+            // Function to load a template from a file
             async function loadTemplate(templateKey) {
+                const currentActive = document.querySelector('.template-btn.active');
+                // Check if the target template is different from the current one before asking for confirmation
+                if (isDirty && (!currentActive || templateKey !== currentActive.dataset.template)) {
+                    if (!confirm("You have unsaved changes that will be lost by loading a new template. Continue?")) {
+                        // Revert active class if user cancels and a different button was clicked
+                        const targetBtn = document.querySelector(`.template-btn[data-template="${templateKey}"]`);
+                        if (targetBtn && currentActive && targetBtn !== currentActive) {
+                            targetBtn.classList.remove('active');
+                            currentActive.classList.add('active');
+                        }
+                        return Promise.reject("User cancelled template load due to unsaved changes.");
+                    }
+                }
+
                 const filePath = templateFiles[templateKey];
                 if (!filePath) {
                     console.error(`Template key "${templateKey}" not found in templateFiles mapping.`);
@@ -321,6 +472,11 @@
                     }
                     const text = await response.text();
                     inputText.value = text;
+                    // Update active button after successful load
+                    templateBtns.forEach(b => b.classList.remove('active'));
+                    const newActiveBtn = document.querySelector(`.template-btn[data-template="${templateKey}"]`);
+                    if (newActiveBtn) newActiveBtn.classList.add('active');
+
                 } catch (error) {
                     console.error(`Error fetching template "${templateKey}":`, error);
                     inputText.value = `Error loading template: ${templateKey}\n\n${error.message}\n\nEnsure the file exists at '${filePath}' (relative to the HTML file) and that you are serving this page via an HTTP server (not directly from file:///), especially for local development.`;
@@ -329,21 +485,20 @@
                     updateEditorVisuals();
                     runLinter();
                     resetConvertButtonState();
+                    markDirty(false); // Successfully loaded a template
                 }
             }
 
-            loadTemplate('empty');
-
             templateBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
-                    templateBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
+                    const previouslyActive = document.querySelector('.template-btn.active');
+                    if (btn === previouslyActive) return;
                     loadTemplate(btn.dataset.template);
                 });
             });
 
             convertBtn.addEventListener('click', handleConvertClick);
-
+            
             function handleConvertClick() {
                 clearTimeout(convertClickTimer);
                 convertClickCount++;
@@ -368,7 +523,7 @@
                 convertBtn.innerHTML = originalConvertBtnHTML;
                 clearTimeout(convertClickTimer);
             }
-
+            
             function copyToClipboardHandler() {
                 outputText.select();
                 document.execCommand('copy');
@@ -385,11 +540,19 @@
             mobileCopyBtn.addEventListener('click', copyToClipboardHandler);
 
             clearBtn.addEventListener('click', () => {
+                if (inputText.value !== '' || outputText.value !== '') {
+                    if (isDirty || inputText.value.trim() !== '') { // Check if dirty or if there's actual text
+                         if (!confirm("Are you sure you want to clear the input and output? Unsaved changes will be lost.")) {
+                            return;
+                        }
+                    }
+                }
                 inputText.value = '';
                 outputText.value = '';
                 updateEditorVisuals();
                 runLinter();
                 resetConvertButtonState();
+                markDirty(false);
             });
 
             function convertToPList() {
@@ -414,42 +577,43 @@
                 result = result.replace(/\(\s+/g, '(');
                 result = result.replace(/\s+\)/g, ')');
                 result = result.replace(/\)\s+;/g, ');');
-                result = result.replace(/\s+/g, ' '); // Final cleanup
+                result = result.replace(/\s+/g, ' ');
                 result = `[${result}]`;
                 outputText.value = result;
             }
+
+            formatPListBtn.addEventListener('click', function() {
+                if (isDirty && outputText.value.trim() !== "" && inputText.value.trim() !== outputText.value.trim()) {
+                     if (!confirm("You have unsaved changes in the input area. Formatting the PList output into the input area will overwrite them. Continue?")) {
+                        return;
+                    }
+                }
+                formatPListToTemplist();
+            });
 
             function formatPListToTemplist() {
                 const pListStr = outputText.value.trim();
 
                 if (!pListStr.startsWith('[') || !pListStr.endsWith(']')) {
-                    inputText.value = "Error: PList Output is not a valid PList string (must start with '[' and end with ']').";
-                    updateEditorVisuals();
-                    runLinter();
+                    alert("PList Output is not a valid PList string (must start with '[' and end with ']'). Cannot format.");
                     return;
                 }
-
                 if (pListStr === "[]" || pListStr === "[ ]") {
-                    inputText.value = "[\n]"; // More consistent empty representation
-                    updateEditorVisuals();
-                    runLinter();
-                    resetConvertButtonState();
+                    inputText.value = "[\n]";
+                    updateEditorVisuals(); runLinter(); markDirty(false); resetConvertButtonState();
                     return;
                 }
-
                 let content = pListStr.substring(1, pListStr.length - 1).trim();
                 if (!content) {
                     inputText.value = "[\n]";
-                    updateEditorVisuals();
-                    runLinter();
-                    resetConvertButtonState();
+                    updateEditorVisuals(); runLinter(); markDirty(false); resetConvertButtonState();
                     return;
                 }
 
                 let formattedResult = "[\n";
                 const baseIndent = "  ";
                 const traitIndent = "    ";
-                let currentIndentLvl = 0; // 0 for base, 1 for trait
+                let currentIndentLvl = 0;
                 let buffer = "";
                 let parenDepth = 0;
 
@@ -457,104 +621,95 @@
                     const char = content[i];
                     buffer += char;
 
-                    if (char === '(') {
-                        parenDepth++;
-                    } else if (char === ')') {
-                        parenDepth--;
-                    } else if (parenDepth === 0) {
+                    if (char === '(') parenDepth++;
+                    else if (char === ')') parenDepth--;
+                    else if (parenDepth === 0) {
                         const effectiveIndent = currentIndentLvl === 0 ? baseIndent : traitIndent;
                         if (char === ':') {
                             formattedResult += effectiveIndent + buffer.trim() + "\n";
                             buffer = "";
-                            currentIndentLvl = 1; // Switch to trait indentation
+                            currentIndentLvl = 1;
                         } else if (char === ',') {
                             formattedResult += effectiveIndent + buffer.trim() + "\n";
                             buffer = "";
-                            // Indentation level remains the same (traitIndent)
                         } else if (char === ';') {
                             formattedResult += effectiveIndent + buffer.trim() + "\n";
                             buffer = "";
-                            currentIndentLvl = 0; // Switch back to base indentation
+                            currentIndentLvl = 0;
                         }
                     }
                 }
-
-                // Add any remaining buffer content
                 if (buffer.trim()) {
                     const effectiveIndent = currentIndentLvl === 0 ? baseIndent : traitIndent;
                     let lastPart = buffer.trim();
-                    // The very last item in the PList should not have a trailing comma or semicolon
                     if (lastPart.endsWith(',') || lastPart.endsWith(';')) {
                         lastPart = lastPart.slice(0, -1);
                     }
                     formattedResult += effectiveIndent + lastPart + "\n";
                 }
                 
-                // Ensure the line before ']' doesn't have a trailing comma/semicolon if it wasn't handled by the loop's end
-                if (formattedResult.trim().endsWith(',') || formattedResult.trim().endsWith(';')) {
-                     formattedResult = formattedResult.trim().slice(0,-1) + "\n";
+                let tempLines = formattedResult.trim().split('\n');
+                if (tempLines.length > 1 && tempLines[0].trim() === "[") { // Check if first line is just "["
+                    let lastContentLineIndex = tempLines.length -1;
+                    if (lastContentLineIndex > 0) { // Ensure there's a line after "["
+                        let lastContentLine = tempLines[lastContentLineIndex].trim();
+                        if (lastContentLine.endsWith(',') || lastContentLine.endsWith(';')) {
+                            tempLines[lastContentLineIndex] = tempLines[lastContentLineIndex].trim().slice(0,-1);
+                        }
+                        formattedResult = tempLines.join('\n');
+                    }
                 }
 
 
-                formattedResult += "]";
-                formattedResult = formattedResult.replace(/\n\s*\n/g, '\n'); // Clean up multiple newlines
+                formattedResult += "\n]";
+                formattedResult = formattedResult.replace(/\n\s*\n/g, '\n');
 
                 inputText.value = formattedResult;
                 updateEditorVisuals();
                 runLinter();
                 resetConvertButtonState();
+                markDirty(false);
             }
-
-            formatPListBtn.addEventListener('click', formatPListToTemplist);
-
 
             fullscreenBtn.addEventListener('click', toggleFullscreen);
             document.addEventListener('keydown', (event) => {
                 if (event.key === 'Escape' && editorContainer.classList.contains('fullscreen')) {
                     toggleFullscreen();
                 }
+                if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                    event.preventDefault();
+                    stashInput(false);
+                }
             });
 
             function toggleFullscreen() {
                 editorContainer.classList.toggle('fullscreen');
                 document.body.classList.toggle('fullscreen-active');
-
                 Array.from(mainContainer.children).forEach(child => {
                     if (child !== editorContainer.closest('.card')) {
-                         if (editorContainer.classList.contains('fullscreen')) {
-                            child.style.display = 'none';
-                         } else {
-                            child.style.display = '';
-                         }
+                         if (editorContainer.classList.contains('fullscreen')) child.style.display = 'none';
+                         else child.style.display = '';
                     }
                 });
-
-                if (editorContainer.classList.contains('fullscreen')) {
-                    fullscreenIcon.textContent = 'fullscreen_exit';
-                    inputText.focus();
-                } else {
-                    fullscreenIcon.textContent = 'fullscreen';
-                }
+                fullscreenIcon.textContent = editorContainer.classList.contains('fullscreen') ? 'fullscreen_exit' : 'fullscreen';
+                if (editorContainer.classList.contains('fullscreen')) inputText.focus();
                 updateEditorVisuals();
             }
 
             function updateEditorVisuals() {
                 const lines = inputText.value.split('\n').length;
                 const currentScrollTop = lineNumbersDiv.scrollTop;
-
                 lineNumbersDiv.innerHTML = '';
                 for (let i = 1; i <= lines; i++) {
                     const div = document.createElement('div');
                     div.textContent = i;
                     lineNumbersDiv.appendChild(div);
                 }
-
                 if (!editorContainer.classList.contains('fullscreen')) {
                     lineNumbersDiv.style.height = inputText.clientHeight + 'px';
                 } else {
                     lineNumbersDiv.style.height = '';
                 }
-
                 lineNumbersDiv.scrollTop = currentScrollTop;
             }
 
@@ -567,6 +722,7 @@
 
             let editorUpdateTimeout;
             inputText.addEventListener('input', () => {
+                markDirty();
                 clearTimeout(editorUpdateTimeout);
                 editorUpdateTimeout = setTimeout(() => {
                     updateEditorVisuals();
@@ -574,10 +730,8 @@
                 }, 150);
                 resetConvertButtonState();
             });
-
-            new ResizeObserver(() => {
-                updateEditorVisuals();
-            }).observe(inputText);
+            
+            new ResizeObserver(updateEditorVisuals).observe(inputText);
 
             function runLinter() {
                 const text = inputText.value;
@@ -585,19 +739,11 @@
                 const rawLines = text.split('\n');
                 let openParenCount = 0;
                 let openBracketCount = 0;
-
                 const codeLines = [];
                 rawLines.forEach((line, index) => {
                     const trimmedLine = line.trim();
-                    codeLines.push({
-                        text: trimmedLine,
-                        number: index + 1,
-                        original: line,
-                    });
-                    if (
-                        !trimmedLine.startsWith('//') &&
-                        !trimmedLine.startsWith('#')
-                    ) {
+                    codeLines.push({ text: trimmedLine, number: index + 1, original: line });
+                    if (!trimmedLine.startsWith('//') && !trimmedLine.startsWith('#')) {
                         for (const char of trimmedLine) {
                             if (char === '(') openParenCount++;
                             else if (char === ')') openParenCount--;
@@ -606,212 +752,65 @@
                         }
                     }
                 });
-
-                const activeCodeLines = codeLines.filter(
-                    (l) =>
-                        l.text !== '' &&
-                        !l.text.startsWith('//') &&
-                        !l.text.startsWith('#'),
-                );
+                const activeCodeLines = codeLines.filter(l => l.text !== '' && !l.text.startsWith('//') && !l.text.startsWith('#'));
 
                 if (activeCodeLines.length > 0) {
-                    if (!activeCodeLines[0].text.startsWith('[')) {
-                        errors.push({
-                            line: activeCodeLines[0].number,
-                            msg: "Missing opening '[' at the start.",
-                            type: 'error',
-                        });
-                    }
-                    const lastMeaningfulLine = [...activeCodeLines]
-                        .reverse()
-                        .find((l) => l.text !== '');
-                    if (
-                        lastMeaningfulLine &&
-                        !lastMeaningfulLine.text.endsWith(']')
-                    ) {
-                        errors.push({
-                            line: lastMeaningfulLine.number,
-                            msg: "Missing closing ']' at the end.",
-                            type: 'error',
-                        });
-                    }
-                } else if (
-                    text.trim() !== '' &&
-                    text.trim() !== '[]' &&
-                    text.trim() !== '[ ]'
-                ) {
-                    errors.push({
-                        msg: 'Content seems to be only comments or empty. Expected PList structure.',
-                        type: 'warning',
-                    });
+                    if (!activeCodeLines[0].text.startsWith('[')) errors.push({ line: activeCodeLines[0].number, msg: "Missing opening '[' at the start.", type: 'error' });
+                    const lastMeaningfulLine = [...activeCodeLines].reverse().find(l => l.text !== '');
+                    if (lastMeaningfulLine && !lastMeaningfulLine.text.endsWith(']')) errors.push({ line: lastMeaningfulLine.number, msg: "Missing closing ']' at the end.", type: 'error' });
+                } else if (text.trim() !== '' && text.trim() !== '[]' && text.trim() !== '[ ]') {
+                    errors.push({ msg: "Content seems to be only comments or empty. Expected PList structure.", type: 'warning' });
                 }
-
-                if (openParenCount !== 0) {
-                    errors.push({
-                        msg: `Mismatched parentheses '(' and ')' globally (balance: ${openParenCount}).`,
-                        type: 'error',
-                    });
-                }
-                if (openBracketCount !== 0) {
-                    errors.push({
-                        msg: `Mismatched brackets '[' and ']' globally (balance: ${openBracketCount}).`,
-                        type: 'error',
-                    });
-                }
+                if (openParenCount !== 0) errors.push({ msg: `Mismatched parentheses '(' and ')' globally (balance: ${openParenCount}).`, type: 'error' });
+                if (openBracketCount !== 0) errors.push({ msg: `Mismatched brackets '[' and ']' globally (balance: ${openBracketCount}).`, type: 'error' });
 
                 for (const lineObj of activeCodeLines) {
                     const line = lineObj.text;
-                    let inSingleQuote = false;
-                    let inDoubleQuote = false;
-                    let inParen = 0;
-                    let prevChar = '';
-
+                    let inSingleQuote = false, inDoubleQuote = false, inParen = 0, prevChar = '';
                     for (let i = 0; i < line.length; i++) {
                         const char = line[i];
-
-                        if (char === "'" && !inDoubleQuote && !inSingleQuote) {
-                            inSingleQuote = true;
-                        } else if (char === "'" && inSingleQuote) {
-                            inSingleQuote = false;
-                        } else if (char === '"' && !inSingleQuote && !inDoubleQuote) {
-                            inDoubleQuote = true;
-                        } else if (char === '"' && inDoubleQuote) {
-                            inDoubleQuote = false;
-                        } else if (char === '(' && !inSingleQuote && !inDoubleQuote) {
-                            inParen++;
-                        } else if (
-                            char === ')' &&
-                            !inSingleQuote &&
-                            !inDoubleQuote &&
-                            inParen > 0
-                        ) {
-                            inParen--;
-                        }
-
-                        if (inSingleQuote || inDoubleQuote || inParen > 0) {
-                            prevChar = ''; // Reset prevChar so it doesn't carry over from inside quotes/parens
-                            continue;
-                        }
-
-                        if ('[];,:'.includes(char) && char === prevChar) {
-                            errors.push({
-                                line: lineObj.number,
-                                msg: `Duplicate symbol '${char}' detected.`,
-                                type: 'warning',
-                            });
-                        }
+                        if (char === "'" && !inDoubleQuote && !inSingleQuote) inSingleQuote = true;
+                        else if (char === "'" && inSingleQuote) inSingleQuote = false;
+                        else if (char === '"' && !inSingleQuote && !inDoubleQuote) inDoubleQuote = true;
+                        else if (char === '"' && inDoubleQuote) inDoubleQuote = false;
+                        else if (char === '(' && !inSingleQuote && !inDoubleQuote) inParen++;
+                        else if (char === ')' && !inSingleQuote && !inDoubleQuote && inParen > 0) inParen--;
+                        if (inSingleQuote || inDoubleQuote || inParen > 0) { prevChar = ''; continue; }
+                        if ('[];,:'.includes(char) && char === prevChar) errors.push({ line: lineObj.number, msg: `Duplicate symbol '${char}' detected.`, type: 'warning' });
                         prevChar = char;
                     }
                 }
-
                 let inCategory = false;
                 for (let i = 0; i < activeCodeLines.length; i++) {
                     const lineObj = activeCodeLines[i];
                     const currentLine = lineObj.text;
-                    const nextLineObj =
-                        i + 1 < activeCodeLines.length
-                            ? activeCodeLines[i + 1]
-                            : null;
+                    const nextLineObj = (i + 1 < activeCodeLines.length) ? activeCodeLines[i+1] : null;
                     const nextLineText = nextLineObj ? nextLineObj.text : null;
-
                     if (i === 0 && currentLine.startsWith('[')) continue;
-
-                    let isEffectivelyLastContentLine = false;
-                    if (i === activeCodeLines.length - 1) {
-                        isEffectivelyLastContentLine = true;
-                    } else if (
-                        i === activeCodeLines.length - 2 &&
-                        nextLineText === ']'
-                    ) {
-                        isEffectivelyLastContentLine = true;
-                    }
+                    let isEffectivelyLastContentLine = (i === activeCodeLines.length - 1) || (i === activeCodeLines.length - 2 && nextLineText === ']');
 
                     if (currentLine.match(/^[\w\s-]+:\s*$/)) {
                         inCategory = true;
-                        if (currentLine.slice(0, -1).trim() === '') {
-                            errors.push({
-                                line: lineObj.number,
-                                msg: 'Category name appears empty.',
-                                type: 'warning',
-                            });
-                        }
+                        if (currentLine.slice(0, -1).trim() === "") errors.push({ line: lineObj.number, msg: "Category name appears empty.", type: 'warning' });
                     } else if (inCategory) {
                         let lineParenBalance = 0;
-                        for (const char of currentLine) {
-                            if (char === '(') lineParenBalance++;
-                            else if (char === ')') lineParenBalance--;
-                        }
-
-                        if (lineParenBalance !== 0) {
-                            if (openParenCount !== 0) {
-                                errors.push({
-                                    line: lineObj.number,
-                                    msg: 'Mismatched parentheses on this line (contributes to global imbalance).',
-                                    type: 'error',
-                                });
-                            }
-                        }
-
-                        const isLastTraitOfThisCategoryBlock =
-                            nextLineText === null ||
-                            nextLineText.match(/^[\w\s-]+:\s*$/) ||
-                            (nextLineObj && nextLineObj.text === ']');
-
+                        for (const char of currentLine) { if (char === '(') lineParenBalance++; else if (char === ')') lineParenBalance--; }
+                        if (lineParenBalance !== 0 && openParenCount !== 0) errors.push({ line: lineObj.number, msg: "Mismatched parentheses on this line (contributes to global imbalance).", type: 'error' });
+                        const isLastTraitOfThisCategoryBlock = nextLineText === null || nextLineText.match(/^[\w\s-]+:\s*$/) || (nextLineObj && nextLineObj.text === ']');
+                        const lineWithoutComment = currentLine.replace(/(\/\/|#).*$/, '').trim();
                         if (isLastTraitOfThisCategoryBlock) {
-                            if (isEffectivelyLastContentLine) {
-                                const lineWithoutComment = currentLine
-                                    .replace(/(\/\/|#).*$/, '')
-                                    .trim();
-                                if (lineWithoutComment.endsWith(';')) {
-                                    errors.push({
-                                        line: lineObj.number,
-                                        msg: "Last category block should not end with ';'.",
-                                        type: 'warning',
-                                    });
-                                }
-                            } else if (nextLineText !== null) {
-                                const lineWithoutComment = currentLine
-                                    .replace(/(\/\/|#).*$/, '')
-                                    .trim();
-                                if (!lineWithoutComment.endsWith(';')) {
-                                    errors.push({
-                                        line: lineObj.number,
-                                        msg: "End of category block? Might need a ';' before next category.",
-                                        type: 'warning',
-                                    });
-                                }
-                            }
-                        } else { // This is a trait, not the last in its category block
-                            const lineWithoutComment = currentLine
-                                .replace(/(\/\/|#).*$/, '')
-                                .trim();
-                            if (lineWithoutComment.endsWith(';')) {
-                                errors.push({
-                                    line: lineObj.number,
-                                    msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.",
-                                    type: 'warning',
-                                });
-                            }
-                            // Check for missing comma if it's not the last trait before a semicolon
-                             if (!lineWithoutComment.endsWith(',') && nextLineText && !nextLineText.match(/^[\w\s-]+:\s*$/) && nextLineText !== ']') {
-                                errors.push({
-                                    line: lineObj.number,
-                                    msg: "Missing ',' after this trait?",
-                                    type: 'warning'
-                                });
-                            }
+                            if (isEffectivelyLastContentLine && lineWithoutComment.endsWith(';')) errors.push({ line: lineObj.number, msg: "Last category block should not end with ';'.", type: 'warning' });
+                            else if (!isEffectivelyLastContentLine && nextLineText !== null && !lineWithoutComment.endsWith(';')) errors.push({ line: lineObj.number, msg: "End of category block? Might need a ';' before next category.", type: 'warning' });
+                        } else {
+                            if (lineWithoutComment.endsWith(';')) errors.push({ line: lineObj.number, msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.", type: 'warning' });
+                            if (!lineWithoutComment.endsWith(',') && nextLineText && !nextLineText.match(/^[\w\s-]+:\s*$/) && nextLineText !== ']') errors.push({ line: lineObj.number, msg: "Missing ',' after this trait?", type: 'warning' });
                         }
                     } else if (currentLine !== '[' && currentLine !== ']') {
-                        errors.push({
-                            line: lineObj.number,
-                            msg: "Line outside a category. Expected 'Category Name:'.",
-                            type: 'warning',
-                        });
+                        errors.push({ line: lineObj.number, msg: "Line outside a category. Expected 'Category Name:'.", type: 'warning' });
                     }
                 }
                 displayLintMessages(errors);
             }
-
 
             function displayLintMessages(errors) {
                 lintMessagesUl.innerHTML = '';
@@ -828,10 +827,7 @@
                     li.innerHTML = `<i class="material-icons lint-icon" style="color:${iconColor};">${icon}</i> ${err.line ? `L${err.line}: ` : ''}${err.msg}`;
                     if (err.line) {
                         li.dataset.lineNumber = err.line;
-                        li.addEventListener('click', () => {
-                            scrollToLine(err.line);
-                            highlightLine(err.line);
-                        });
+                        li.addEventListener('click', () => { scrollToLine(err.line); highlightLine(err.line); });
                     }
                     lintMessagesUl.appendChild(li);
                 });
@@ -840,56 +836,39 @@
             function scrollToLine(lineNumber) {
                 const lines = inputText.value.substring(0, inputText.value.length).split('\n');
                 let charCount = 0;
-                for (let i = 0; i < lineNumber - 1; i++) {
-                    charCount += lines[i].length + 1;
-                }
-
+                for (let i = 0; i < lineNumber - 1; i++) charCount += lines[i].length + 1;
                 inputText.focus();
                 inputText.setSelectionRange(charCount, charCount);
-
                 const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
                 const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
                 const targetScrollTop = (lineNumber - 1) * lineHeight + paddingTop - (inputText.clientHeight / 3);
-
                 inputText.scrollTop = Math.max(0, targetScrollTop);
             }
 
             let highlightTimeout;
             function highlightLine(lineNumber) {
                 clearTimeout(highlightTimeout);
-
                 if (window.getComputedStyle(lineNumbersDiv).display !== 'none') {
                     lineNumbersDiv.querySelectorAll('div.highlighted').forEach(el => el.classList.remove('highlighted'));
                     const targetLineDiv = lineNumbersDiv.children[lineNumber - 1];
                     if (targetLineDiv) {
                         targetLineDiv.classList.add('highlighted');
-                        highlightTimeout = setTimeout(() => {
-                            targetLineDiv.classList.remove('highlighted');
-                        }, 1500);
+                        highlightTimeout = setTimeout(() => targetLineDiv.classList.remove('highlighted'), 1500);
                     }
                 } else {
                     const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
                     const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
                     const highlightYPositionInTextarea = (lineNumber - 1) * lineHeight + paddingTop - inputText.scrollTop;
-
                     inputText.style.backgroundImage = `linear-gradient(transparent, transparent ${highlightYPositionInTextarea -1}px, var(--textarea-highlight-color) ${highlightYPositionInTextarea -1}px, var(--textarea-highlight-color) ${highlightYPositionInTextarea + lineHeight -1}px, transparent ${highlightYPositionInTextarea + lineHeight -1}px)`;
-                    highlightTimeout = setTimeout(() => {
-                        inputText.style.backgroundImage = 'none';
-                    }, 1500);
+                    highlightTimeout = setTimeout(() => { inputText.style.backgroundImage = 'none'; }, 1500);
                 }
             }
 
             window.onscroll = function() {scrollFunction()};
             function scrollFunction() {
-                if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
-                    scrollToTopBtn.style.display = "flex";
-                } else {
-                    scrollToTopBtn.style.display = "none";
-                }
+                scrollToTopBtn.style.display = (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) ? "flex" : "none";
             }
-            scrollToTopBtn.addEventListener('click', () => {
-                window.scrollTo({top: 0, behavior: 'smooth'});
-            });
+            scrollToTopBtn.addEventListener('click', () => window.scrollTo({top: 0, behavior: 'smooth'}));
         });
     </script>
 </body>
