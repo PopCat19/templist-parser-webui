@@ -406,9 +406,28 @@
                 let lines = processedInput.split('\n')
                     .map(line => line.trim())
                     .filter(line => line !== '');
+
                 let result = lines.join(' ');
-                result = result.replace(/\s+/g, ' ');
+
+                // Rule 0: Remove empty parentheses first
                 result = result.replace(/\(\s*\)/g, '');
+
+                // Rule A: General whitespace normalization
+                result = result.replace(/\s+/g, ' ');
+
+                // Specific formatting rules for PList style:
+                // Rule 1: "key (" -> "key("
+                result = result.replace(/([\w-]+)\s+\(/g, '$1(');
+                // Rule 2: "( value" -> "(value"
+                result = result.replace(/\(\s+/g, '(');
+                // Rule 3: "value )" -> "value)"
+                result = result.replace(/\s+\)/g, ')');
+                // Rule 4: ") ;" -> ");"
+                result = result.replace(/\)\s+;/g, ');');
+
+                // Rule B: Final whitespace cleanup
+                result = result.replace(/\s+/g, ' ');
+
                 result = `[${result}]`;
                 outputText.value = result;
             }
@@ -484,7 +503,7 @@
                 updateEditorVisuals();
             }).observe(inputText);
 
-            let lintTimeout; // Not used, but kept for consistency if needed later
+            // Linter function with hotfix for multi-line parentheses
             function runLinter() {
                 const text = inputText.value;
                 const errors = [];
@@ -648,25 +667,15 @@
                             else if (char === ')') lineParenBalance--;
                         }
 
-                        // --- START HOTFIX ---
                         if (lineParenBalance !== 0) {
-                            // If global parenthesis count (openParenCount) is zero,
-                            // it means all parentheses are balanced overall.
-                            // A non-zero lineParenBalance in this case implies a valid multi-line structure.
-                            // So, don't report it as a line-specific error. The global check handles overall imbalance.
                             if (openParenCount !== 0) {
-                                // Only report as a line-specific error if global is also unbalanced.
-                                // This makes it a symptom of the larger problem.
                                 errors.push({
                                     line: lineObj.number,
                                     msg: 'Mismatched parentheses on this line (contributes to global imbalance).',
                                     type: 'error',
                                 });
                             }
-                            // If openParenCount === 0, this line is part of a balanced multi-line expression.
-                            // No per-line error will be generated here in that case.
                         }
-                        // --- END HOTFIX ---
 
                         const isLastTraitOfThisCategoryBlock =
                             nextLineText === null ||
