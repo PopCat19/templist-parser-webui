@@ -69,7 +69,7 @@
             display: inline-flex; align-items: center; justify-content: center;
             gap: var(--spacing-unit); padding: calc(var(--spacing-unit) * 1.25) calc(var(--spacing-unit) * 2.5);
             border-radius: 20px; border: none; font-size: 0.875rem; font-weight: 500;
-            cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+            cursor: pointer; transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease, opacity 0.3s ease;
             background-color: var(--md-primary); color: var(--md-on-primary);
             flex: 1 1 auto; min-width: 120px; text-align: center;
         }
@@ -201,6 +201,19 @@
 
         .mobile-copy-btn { display: none; width: 100%; margin-top: calc(var(--spacing-unit) * 1.5); }
 
+        #scrollToTopBtn {
+            display: none; 
+            position: fixed;
+            bottom: calc(var(--spacing-unit) * 3);
+            right: calc(var(--spacing-unit) * 3);
+            z-index: 999;
+            opacity: 0.8;
+        }
+        #scrollToTopBtn:hover {
+            opacity: 1;
+        }
+
+
         @media (max-width: 768px) {
             h1 { font-size: 1.8rem; } h2 { font-size: 1.3rem; }
             .card-header { flex-direction: column; align-items: center; }
@@ -215,6 +228,10 @@
             .editor-container { border: 1px solid var(--md-outline); }
             textarea { border-radius: 8px; }
             .editor-container.fullscreen .line-numbers { display: flex; flex-direction: column; }
+            #scrollToTopBtn {
+                bottom: calc(var(--spacing-unit) * 2);
+                right: calc(var(--spacing-unit) * 2);
+            }
         }
         @media (max-width: 480px) {
             body { padding: var(--spacing-unit); }
@@ -292,13 +309,18 @@
         </div>
     </div>
 
+    <button class="btn btn-icon" id="scrollToTopBtn" title="Scroll to Top">
+        <i class="material-icons">arrow_upward</i>
+    </button>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const templates = {
-                empty: `[\n// Top-level category: Character's core identity\nCharacter Name: \n  age(), // Example: age(25)\n  gender(), // e.g., male/female/non-binary\n  height(),\n  birthday(),\n  residence(),\n  occupation(),\n  role(),\n  title(),\n  backstory();\n  \n// Appearance details\nAppearance: \n  hair(color/length/style/texture/accessories),\n  eyes(color/shape/pupils/special_effects),\n  facial_structure(cheekbones/jawline/nose),\n  skin(tone/texture/markings),\n  body_type(build/posture/proportions),\n  body_mods(horns(type/material/glow)/wings(type/texture)),\n  outfit_top(shirt/jacket/vest),\n  outfit_bottom(pants/skirt/shorts),\n  footwear(boots/shoes/sandals),\n  accessories(jewelry/glasses/weapons),\n  color_palette(primary/secondary/accent),\n  signature_item();\n  \n// Personality and behavior\nPersona: \n  traits(), // e.g., brave/curious/reserved\n  motivations(),\n  fears(),\n  speech_patterns(formal/slang/cadence),\n  catchphrases(),\n  ethics(),\n  flaws(),\n  abilities(combat/utility/passive);\n  \n// Relationships with other characters or groups\nRelationships: \n  allies(),\n  rivals(),\n  mentors(),\n  family(),\n  factions(),\n  romantic();\n  \n// Key history and development points\nBackstory: \n  origin(),\n  turning_points(),\n  achievements(),\n  secrets();\n  \n// World context\nSetting: \n  era(),\n  location(primary/secondary),\n  culture(),\n  technology(),\n  magic();\n  \n// Tags for searching or categorization\nTags: \n  genre(),\n  tone(),\n  aesthetic(),\n  archetype()\n]`,
-                hina: `[\nCharacter Name: \n  age(17),\n  gender(female),\n  height(142cm),\n  birthday(February 19th),\n  school(Gehenna Academy),\n  club(Disciplinary Committee),\n  role(Head Prefect/Chairwoman),\n  title("Gehenna's Unstoppable Force"),\n  halo(black jagged cylinder/purple stripes/inner black circle/sharp arrow motif),\n  backstory(overworked leader/secretly desires retirement/mentally exhausted post-Eden Treaty);\n  \nAppearance: \n  hair(white/knee-length wavy/black-red ribbon tie),\n  horns(dark black/purple glowing cracks),\n  eyes(purple devil-like),\n  wings(black waist-mounted),\n  uniform(dark purple military coat/black fluffy hood/golden buttons/red armband),\n  skirt(black mini),\n  stockings(wine-purple thigh-high),\n  boots(dark purple military/gold latches),\n  firearm(MG42 machine gun/"The End: Destroyer"/spiral barrel cuts/purple glow),\n  accessory(gold monocle clip);\n  \nPersona: \n  traits(laid-back/gentle/strict when provoked/emotionally vulnerable),\n  loves(sleeping/breaks/Sensei's praise),\n  dislikes(excessive work/political schemes/being idolized),\n  catchphrases("How troublesome..."/"It's annoying, but...well, it's something I have to do"),\n  abilities(Machine Gun mastery/superhuman endurance/EX skill-"Relentless Barrage"),\n  voice(calm with tired undertones/occasionally flustered);\n  \nRelationships: \n  Ako(respected subordinate/space invader),\n  Chinatsu(paperwork supporter),\n  Iori(reckless junior),\n  Makoto(Pandemonium troublemaker),\n  Haruna(Gourmet Society rival),\n  Hiyori(Arius battlefield opponent),\n  Saori(near-fatal encounter protector),\n  Alice(post-Volume F friend/party invitee),\n  Sensei(trusted confidant/emotional anchor);\n  \nMain Story: \n  key_volumes(1/3),\n  pivotal_moments(cathedral explosion defense/Sensei rescue breakdown/ETO alliance formation);\n  \nTags: \n  Blue Archive/anime-style/school leadership/emotional depth/military aesthetic;\n  \nScenario: \n  Late-night meetings with Sensei/mall "work" outings/daytime walks/Disciplinary Committee crisis management\n]`,
-                minimal: `[\nCharacter Name: \n  age(),\n  gender(),\n  role();\n  \nAppearance: \n  hair(),\n  eyes(),\n  clothing();\n  \nPersona: \n  traits(),\n  likes(),\n  dislikes();\n  \nRelationships: \n  allies(),\n  rivals()\n]`,
-                fantasy: `[\nCharacter Name: \n  age(250),\n  gender(non-binary),\n  race(Elf),\n  class(Arcane Archer),\n  title("Forest Guardian"),\n  backstory(exiled noble/forest protector);\n  \nAppearance: \n  hair(silver/long/braided),\n  eyes(green/almond-shaped/luminescent),\n  ears(elongated/pointed),\n  skin(fair/leaf-like markings),\n  clothing(forest green tunic/brown leather vest),\n  weapon(enchanted longbow/"Whispering Wind"),\n  accessory(emerald pendant);\n  \nPersona: \n  traits(wise/patient/vengeful when provoked),\n  loves(ancient trees/starlight/archery),\n  dislikes(deforestation/dark magic/arrogance),\n  catchphrases("The forest remembers"/"My arrow finds its mark");\n  \nAbilities: \n  combat("Precision Shot"/"Multishot"),\n  magic("Nature's Embrace"/"Vine Snare"),\n  passive("Keen Senses"/"Night Vision");\n  \nRelationships: \n  Elara(mentor/mother figure),\n  Thorne(rival/former friend),\n  Sylvana(romantic interest/ally);\n  \nSetting: \n  location(Enchanted Forest of Eldoria),\n  era(Age of Awakening),\n  magic(high/nature-based)\n]`
+            // Map template keys to their file paths
+            const templateFiles = {
+                empty: './templates/empty.md',
+                hina: './templates/hina.md',
+                minimal: './templates/minimal.md',
+                fantasy: './templates/fantasy.md'
             };
 
             const inputText = document.getElementById('inputText');
@@ -316,25 +338,48 @@
             const lintMessagesUl = document.querySelector('#lintMessages ul');
             const lineNumbersDiv = document.getElementById('lineNumbers');
             const outputCard = document.getElementById('outputCard');
+            const scrollToTopBtn = document.getElementById('scrollToTopBtn');
 
             const originalConvertBtnHTML = convertBtn.innerHTML;
             let convertClickCount = 0;
             let convertClickTimer = null;
             const DOUBLE_CLICK_TIMEOUT = 2000;
 
-            inputText.value = templates.empty;
-            updateEditorVisuals();
-            runLinter();
+            // Function to load a template from a file
+            async function loadTemplate(templateKey) {
+                const filePath = templateFiles[templateKey];
+                if (!filePath) {
+                    console.error(`Template key "${templateKey}" not found in templateFiles mapping.`);
+                    inputText.value = `Error: Template configuration for "${templateKey}" is missing.`;
+                    updateEditorVisuals();
+                    runLinter();
+                    return;
+                }
+                try {
+                    const response = await fetch(filePath);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status} for ${filePath}`);
+                    }
+                    const text = await response.text();
+                    inputText.value = text;
+                } catch (error) {
+                    console.error(`Error fetching template "${templateKey}":`, error);
+                    inputText.value = `Error loading template: ${templateKey}\n\n${error.message}\n\nEnsure the file exists at '${filePath}' (relative to the HTML file) and that you are serving this page via an HTTP server (not directly from file:///), especially for local development.`;
+                } finally {
+                    inputText.scrollTop = 0; 
+                    updateEditorVisuals();
+                    runLinter();
+                    resetConvertButtonState();
+                }
+            }
+            
+            loadTemplate('empty'); // Load default template on page load
 
             templateBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
                     templateBtns.forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
-                    inputText.value = templates[btn.dataset.template];
-                    inputText.scrollTop = 0; 
-                    updateEditorVisuals();
-                    runLinter();
-                    resetConvertButtonState();
+                    loadTemplate(btn.dataset.template);
                 });
             });
 
@@ -345,14 +390,12 @@
                 convertClickCount++;
 
                 if (convertClickCount === 1) {
-                    convertToPList(); // Actual conversion happens here
+                    convertToPList();
                     convertBtn.innerHTML = '<i class="material-icons">arrow_downward</i> Scroll to Output?';
                     convertClickTimer = setTimeout(() => {
                         resetConvertButtonState();
                     }, DOUBLE_CLICK_TIMEOUT);
                 } else if (convertClickCount === 2) {
-                    // If convertToPList wasn't called on the first click of a double click, call it now.
-                    // This ensures output is generated even if the user double-clicks quickly.
                     if (outputText.value === '' || outputText.value === 'Your converted PList will appear here...') {
                         convertToPList();
                     }
@@ -395,25 +438,20 @@
                 if (removeCommentsCheckbox.checked) {
                     input = input.replace(/(\/\/|#).*$/gm, '');
                 }
-
                 let processedInput = input.trim();
-
                 if (processedInput.startsWith('[')) {
                     processedInput = processedInput.substring(1);
                 }
                 if (processedInput.endsWith(']')) {
                     processedInput = processedInput.substring(0, processedInput.length - 1);
                 }
-
                 let lines = processedInput.split('\n')
                     .map(line => line.trim())
                     .filter(line => line !== '');
-
                 let result = lines.join(' ');
                 result = result.replace(/\s+/g, ' ');
                 result = result.replace(/\(\s*\)/g, '');
                 result = `[${result}]`;
-                
                 outputText.value = result;
             }
 
@@ -469,7 +507,6 @@
 
             inputText.addEventListener('scroll', () => {
                 lineNumbersDiv.scrollTop = inputText.scrollTop;
-                 // Adjust mobile highlight on scroll if active
                 if (window.getComputedStyle(lineNumbersDiv).display === 'none' && inputText.style.backgroundImage !== 'none') {
                      inputText.style.backgroundPosition = `0 ${inputText.scrollTop * -1}px`;
                 }
@@ -643,18 +680,26 @@
                 } else { 
                     const lineHeight = parseFloat(getComputedStyle(inputText).lineHeight);
                     const paddingTop = parseFloat(getComputedStyle(inputText).paddingTop);
-                    // Calculate Y position relative to the current scroll position of the textarea
                     const highlightYPositionInTextarea = (lineNumber - 1) * lineHeight + paddingTop - inputText.scrollTop;
 
                     inputText.style.backgroundImage = `linear-gradient(transparent, transparent ${highlightYPositionInTextarea -1}px, var(--textarea-highlight-color) ${highlightYPositionInTextarea -1}px, var(--textarea-highlight-color) ${highlightYPositionInTextarea + lineHeight -1}px, transparent ${highlightYPositionInTextarea + lineHeight -1}px)`;
-                    // background-position is not needed here as the gradient is calculated relative to the viewport of the textarea
-                    // inputText.style.backgroundPosition = `0 0`; // Ensure it's from the top of the textarea content
-
                     highlightTimeout = setTimeout(() => {
                         inputText.style.backgroundImage = 'none';
                     }, 1500);
                 }
             }
+
+            window.onscroll = function() {scrollFunction()};
+            function scrollFunction() {
+                if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
+                    scrollToTopBtn.style.display = "flex";
+                } else {
+                    scrollToTopBtn.style.display = "none";
+                }
+            }
+            scrollToTopBtn.addEventListener('click', () => {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
         });
     </script>
 </body>
