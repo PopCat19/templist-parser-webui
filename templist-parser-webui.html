@@ -219,6 +219,7 @@
             <div class="card-header"><h2>Template Selection</h2>
                 <div class="btn-group">
                     <button class="btn" id="convertBtn"><i class="material-icons">swap_horiz</i> Convert to PList</button>
+                    <button class="btn btn-outline" id="formatPListBtn"><i class="material-icons">notes</i> Format PList</button>
                     <button class="btn btn-outline" id="clearBtn"><i class="material-icons">clear</i> Clear</button>
                 </div>
             </div>
@@ -284,6 +285,7 @@
             const inputText = document.getElementById('inputText');
             const outputText = document.getElementById('outputText');
             const convertBtn = document.getElementById('convertBtn');
+            const formatPListBtn = document.getElementById('formatPListBtn');
             const copyBtn = document.getElementById('copyBtn');
             const mobileCopyBtn = document.getElementById('mobileCopyBtn');
             const clearBtn = document.getElementById('clearBtn');
@@ -303,7 +305,6 @@
             let convertClickTimer = null;
             const DOUBLE_CLICK_TIMEOUT = 2000;
 
-            // Function to load a template from a file
             async function loadTemplate(templateKey) {
                 const filePath = templateFiles[templateKey];
                 if (!filePath) {
@@ -331,7 +332,7 @@
                 }
             }
 
-            loadTemplate('empty'); // Load default template on page load
+            loadTemplate('empty');
 
             templateBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -406,31 +407,106 @@
                 let lines = processedInput.split('\n')
                     .map(line => line.trim())
                     .filter(line => line !== '');
-
                 let result = lines.join(' ');
-
-                // Rule 0: Remove empty parentheses first
                 result = result.replace(/\(\s*\)/g, '');
-
-                // Rule A: General whitespace normalization
                 result = result.replace(/\s+/g, ' ');
-
-                // Specific formatting rules for PList style:
-                // Rule 1: "key (" -> "key("
                 result = result.replace(/([\w-]+)\s+\(/g, '$1(');
-                // Rule 2: "( value" -> "(value"
                 result = result.replace(/\(\s+/g, '(');
-                // Rule 3: "value )" -> "value)"
                 result = result.replace(/\s+\)/g, ')');
-                // Rule 4: ") ;" -> ");"
                 result = result.replace(/\)\s+;/g, ');');
-
-                // Rule B: Final whitespace cleanup
-                result = result.replace(/\s+/g, ' ');
-
+                result = result.replace(/\s+/g, ' '); // Final cleanup
                 result = `[${result}]`;
                 outputText.value = result;
             }
+
+            function formatPListToTemplist() {
+                const pListStr = outputText.value.trim();
+
+                if (!pListStr.startsWith('[') || !pListStr.endsWith(']')) {
+                    inputText.value = "Error: PList Output is not a valid PList string (must start with '[' and end with ']').";
+                    updateEditorVisuals();
+                    runLinter();
+                    return;
+                }
+
+                if (pListStr === "[]" || pListStr === "[ ]") {
+                    inputText.value = "[\n]"; // More consistent empty representation
+                    updateEditorVisuals();
+                    runLinter();
+                    resetConvertButtonState();
+                    return;
+                }
+
+                let content = pListStr.substring(1, pListStr.length - 1).trim();
+                if (!content) {
+                    inputText.value = "[\n]";
+                    updateEditorVisuals();
+                    runLinter();
+                    resetConvertButtonState();
+                    return;
+                }
+
+                let formattedResult = "[\n";
+                const baseIndent = "  ";
+                const traitIndent = "    ";
+                let currentIndentLvl = 0; // 0 for base, 1 for trait
+                let buffer = "";
+                let parenDepth = 0;
+
+                for (let i = 0; i < content.length; i++) {
+                    const char = content[i];
+                    buffer += char;
+
+                    if (char === '(') {
+                        parenDepth++;
+                    } else if (char === ')') {
+                        parenDepth--;
+                    } else if (parenDepth === 0) {
+                        const effectiveIndent = currentIndentLvl === 0 ? baseIndent : traitIndent;
+                        if (char === ':') {
+                            formattedResult += effectiveIndent + buffer.trim() + "\n";
+                            buffer = "";
+                            currentIndentLvl = 1; // Switch to trait indentation
+                        } else if (char === ',') {
+                            formattedResult += effectiveIndent + buffer.trim() + "\n";
+                            buffer = "";
+                            // Indentation level remains the same (traitIndent)
+                        } else if (char === ';') {
+                            formattedResult += effectiveIndent + buffer.trim() + "\n";
+                            buffer = "";
+                            currentIndentLvl = 0; // Switch back to base indentation
+                        }
+                    }
+                }
+
+                // Add any remaining buffer content
+                if (buffer.trim()) {
+                    const effectiveIndent = currentIndentLvl === 0 ? baseIndent : traitIndent;
+                    let lastPart = buffer.trim();
+                    // The very last item in the PList should not have a trailing comma or semicolon
+                    if (lastPart.endsWith(',') || lastPart.endsWith(';')) {
+                        lastPart = lastPart.slice(0, -1);
+                    }
+                    formattedResult += effectiveIndent + lastPart + "\n";
+                }
+                
+                // Ensure the line before ']' doesn't have a trailing comma/semicolon if it wasn't handled by the loop's end
+                if (formattedResult.trim().endsWith(',') || formattedResult.trim().endsWith(';')) {
+                     formattedResult = formattedResult.trim().slice(0,-1) + "\n";
+                }
+
+
+                formattedResult += "]";
+                formattedResult = formattedResult.replace(/\n\s*\n/g, '\n'); // Clean up multiple newlines
+
+                inputText.value = formattedResult;
+                updateEditorVisuals();
+                runLinter();
+                resetConvertButtonState();
+            }
+
+            formatPListBtn.addEventListener('click', formatPListToTemplist);
+
 
             fullscreenBtn.addEventListener('click', toggleFullscreen);
             document.addEventListener('keydown', (event) => {
@@ -503,7 +579,6 @@
                 updateEditorVisuals();
             }).observe(inputText);
 
-            // Linter function with hotfix for multi-line parentheses
             function runLinter() {
                 const text = inputText.value;
                 const errors = [];
@@ -614,7 +689,7 @@
                         }
 
                         if (inSingleQuote || inDoubleQuote || inParen > 0) {
-                            prevChar = '';
+                            prevChar = ''; // Reset prevChar so it doesn't carry over from inside quotes/parens
                             continue;
                         }
 
@@ -706,7 +781,7 @@
                                     });
                                 }
                             }
-                        } else {
+                        } else { // This is a trait, not the last in its category block
                             const lineWithoutComment = currentLine
                                 .replace(/(\/\/|#).*$/, '')
                                 .trim();
@@ -715,6 +790,14 @@
                                     line: lineObj.number,
                                     msg: "Unexpected ';'. Semicolons usually end a category block, not individual traits.",
                                     type: 'warning',
+                                });
+                            }
+                            // Check for missing comma if it's not the last trait before a semicolon
+                             if (!lineWithoutComment.endsWith(',') && nextLineText && !nextLineText.match(/^[\w\s-]+:\s*$/) && nextLineText !== ']') {
+                                errors.push({
+                                    line: lineObj.number,
+                                    msg: "Missing ',' after this trait?",
+                                    type: 'warning'
                                 });
                             }
                         }
